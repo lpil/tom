@@ -212,3 +212,81 @@ pub fn parse_multi_line_array_test() {
   |> tom.parse
   |> should.equal(Ok(expected))
 }
+
+pub fn parse_table_test() {
+  let expected = map.from_list([#("a", tom.Table(map.from_list([])))])
+  "[a]\n"
+  |> tom.parse
+  |> should.equal(Ok(expected))
+}
+
+pub fn parse_table_with_values_test() {
+  let expected =
+    map.from_list([
+      #(
+        "a",
+        tom.Table(map.from_list([
+          #("a", tom.Int(1)),
+          #("b", tom.Table(map.from_list([#("c", tom.Int(2))]))),
+        ])),
+      ),
+    ])
+  "[a]
+a = 1
+b.c = 2
+"
+  |> tom.parse
+  |> should.equal(Ok(expected))
+}
+
+pub fn parse_table_with_values_before_test() {
+  let expected =
+    map.from_list([
+      #("name", tom.String("Joe")),
+      #("size", tom.Int(123)),
+      #(
+        "a",
+        tom.Table(map.from_list([
+          #("a", tom.Int(1)),
+          #("b", tom.Table(map.from_list([#("c", tom.Int(2))]))),
+        ])),
+      ),
+    ])
+  "name = \"Joe\"
+size = 123
+
+[a]
+a = 1
+b.c = 2
+"
+  |> tom.parse
+  |> should.equal(Ok(expected))
+}
+
+pub fn parse_multiple_tables_test() {
+  let expected =
+    map.from_list([
+      #("name", tom.String("Joe")),
+      #("size", tom.Int(123)),
+      #(
+        "a",
+        tom.Table(map.from_list([
+          #("a", tom.Int(1)),
+          #("b", tom.Table(map.from_list([#("c", tom.Int(2))]))),
+        ])),
+      ),
+      #("b", tom.Table(map.from_list([#("a", tom.Int(1))]))),
+    ])
+  "name = \"Joe\"
+size = 123
+
+[a]
+a = 1
+b.c = 2
+
+[b]
+a = 1
+"
+  |> tom.parse
+  |> should.equal(Ok(expected))
+}

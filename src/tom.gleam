@@ -29,27 +29,60 @@ type Parsed(a) =
 pub fn parse(input: String) -> Result(Map(String, Toml), ParseError) {
   let input = string.to_graphemes(input)
   let input = drop_comments(input, [])
-  let result = map.new()
-  case parse_top(input, result) {
-    Ok(#(table, _)) -> Ok(table)
-    Error(e) -> Error(e)
+  let input = skip_whitespace(input)
+  use toml, input <- do(parse_table(input, map.new()))
+  parse_tables(input, toml)
+}
+
+fn parse_tables(
+  input: Tokens,
+  toml: Map(String, Toml),
+) -> Result(Map(String, Toml), ParseError) {
+  case input {
+    ["[", ..input] -> {
+      case parse_table_and_header(input) {
+        Error(e) -> Error(e)
+        Ok(#(#(key, table), input)) -> {
+          case insert(toml, key, Table(table)) {
+            Ok(toml) -> parse_tables(input, toml)
+            Error(e) -> Error(e)
+          }
+        }
+      }
+    }
+    [g, ..] -> Error(Unexpected(g, "["))
+    [] -> Ok(toml)
   }
 }
 
-fn parse_top(
+fn parse_table_header(input: Tokens) -> Parsed(List(String)) {
+  let input = skip_line_whitespace(input)
+  use key, input <- do(parse_key(input, []))
+  use input <- expect(input, "]")
+  use input <- expect_end_of_line(input)
+  Ok(#(key, input))
+}
+
+fn parse_table_and_header(
+  input: Tokens,
+) -> Parsed(#(List(String), Map(String, Toml))) {
+  use key, input <- do(parse_table_header(input))
+  use table, input <- do(parse_table(input, map.new()))
+  Ok(#(#(key, table), input))
+}
+
+fn parse_table(
   input: Tokens,
   toml: Map(String, Toml),
 ) -> Parsed(Map(String, Toml)) {
   let input = skip_whitespace(input)
-  let result = case input {
-    [] -> Ok(#(toml, []))
-    _ -> parse_key_value(input, toml)
-  }
-
-  case result {
-    Ok(#(toml, [])) -> Ok(#(toml, []))
-    Ok(#(toml, input)) -> parse_top(input, toml)
-    Error(e) -> Error(e)
+  case input {
+    ["[", ..] | [] -> Ok(#(toml, input))
+    _ ->
+      case parse_key_value(input, toml) {
+        Ok(#(toml, input)) -> parse_table(input, toml)
+        e -> e
+      }
   }
 }
 
@@ -190,10 +223,12 @@ fn parse_key_bare(input: Tokens, name: String) -> Parsed(String) {
     [" ", ..input] if name != "" -> Ok(#(name, input))
     ["=", ..] if name != "" -> Ok(#(name, input))
     [".", ..] if name != "" -> Ok(#(name, input))
+    ["]", ..] if name != "" -> Ok(#(name, input))
     ["\n", ..] if name != "" -> Error(Unexpected("\n", "="))
-    ["\r\n", ..] if name != "" -> Error(Unexpected("\n", "="))
+    ["\r\n", ..] if name != "" -> Error(Unexpected("\r\n", "="))
     ["\n", ..] -> Error(Unexpected("\n", "key"))
-    ["\r\n", ..] -> Error(Unexpected("\n", "key"))
+    ["\r\n", ..] -> Error(Unexpected("\r\n", "key"))
+    ["]", ..] -> Error(Unexpected("]", "key"))
     [g, ..input] -> parse_key_bare(input, name <> g)
     [] -> Error(Unexpected("EOF", "key"))
   }
@@ -226,8 +261,8 @@ fn drop_comments(input: Tokens, acc: Tokens) -> Tokens {
 
 fn do(
   result: Result(#(a, Tokens), ParseError),
-  next: fn(a, Tokens) -> Parsed(b),
-) -> Parsed(b) {
+  next: fn(a, Tokens) -> Result(b, ParseError),
+) -> Result(b, ParseError) {
   case result {
     Ok(#(a, input)) -> next(a, input)
     Error(e) -> Error(e)

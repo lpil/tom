@@ -28,7 +28,7 @@ and its documentation can be found at <https://hexdocs.pm/tom>.
 - [x] Single quoted key
 - [x] Multi-segment key
 - [x] Mixed multi-segment key
-- [ ] Table
+- [x] Table
 - [ ] Array of tables
 - [x] String
 - [ ] Multi-line string
