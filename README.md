@@ -13,13 +13,23 @@ gleam add tom
 import tom
 
 const config = "
-  name = \"tom\"
-  version = \"0.1.0\"
+  [person]
+  name = \"Lucy\"
+  is_cool = true
 "
 
 pub fn main() {
+  // Parse a string of TOML
   let assert Ok(parsed) = tom.parse(config)
-  // Now do stuff with your data!
+
+  // Now you can work with the data directly, or you can use the `get_*`
+  // functions to retrieve values.
+
+  tom.get_string(parsed, ["person", "name"])
+  // -> Ok("Lucy")
+
+  let is_cool = tom.get_bool(parsed, ["person", "is_cool"])
+  // -> Ok(True)
 }
 ```
 

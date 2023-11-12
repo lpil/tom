@@ -1,3 +1,29 @@
+//// A (not quite complete) pure Gleam TOML parser!
+////
+//// ```gleam
+//// import tom
+//// 
+//// const config = "
+////   [person]
+////   name = \"Lucy\"
+////   is_cool = true
+//// "
+//// 
+//// pub fn main() {
+////   // Parse a string of TOML
+////   let assert Ok(parsed) = tom.parse(config)
+//// 
+////   // Now you can work with the data directly, or you can use the `get_*`
+////   // functions to retrieve values.
+//// 
+////   tom.get_string(parsed, ["person", "name"])
+////   // -> Ok("Lucy")
+//// 
+////   let is_cool = tom.get_bool(parsed, ["person", "is_cool"])
+////   // -> Ok(True)
+//// }
+//// ```
+
 import gleam/int
 import gleam/list
 import gleam/string
@@ -24,7 +50,16 @@ pub type GetError {
 }
 
 // TODO: test
-// TODO: document
+/// Get a value of any type from a TOML document.
+///
+/// ## Examples
+/// 
+/// ```gleam
+/// let assert Ok(parsed) = parse("a.b.c = 1")
+/// get(parsed, ["a", "b", "c"])
+/// // -> Ok(Int(1))
+/// ```
+///
 pub fn get(toml: Map(String, Toml), key: List(String)) -> Result(Toml, GetError) {
   case key {
     [] -> Error(NotFound([]))
@@ -40,7 +75,16 @@ pub fn get(toml: Map(String, Toml), key: List(String)) -> Result(Toml, GetError)
 }
 
 // TODO: test
-// TODO: document
+/// Get an int from a TOML document.
+///
+/// ## Examples
+/// 
+/// ```gleam
+/// let assert Ok(parsed) = parse("a.b.c = 1")
+/// get_int(parsed, ["a", "b", "c"])
+/// // -> Ok(1)
+/// ```
+///
 pub fn get_int(
   toml: Map(String, Toml),
   key: List(String),
@@ -53,7 +97,16 @@ pub fn get_int(
 }
 
 // TODO: test
-// TODO: document
+/// Get a float from a TOML document.
+///
+/// ## Examples
+/// 
+/// ```gleam
+/// let assert Ok(parsed) = parse("a.b.c = 1.1")
+/// get_float(parsed, ["a", "b", "c"])
+/// // -> Ok(1.1)
+/// ```
+///
 pub fn get_float(
   toml: Map(String, Toml),
   key: List(String),
@@ -66,7 +119,16 @@ pub fn get_float(
 }
 
 // TODO: test
-// TODO: document
+/// Get a bool from a TOML document.
+///
+/// ## Examples
+/// 
+/// ```gleam
+/// let assert Ok(parsed) = parse("a.b.c = true")
+/// get_bool(parsed, ["a", "b", "c"])
+/// // -> Ok(True)
+/// ```
+///
 pub fn get_bool(
   toml: Map(String, Toml),
   key: List(String),
@@ -79,7 +141,16 @@ pub fn get_bool(
 }
 
 // TODO: test
-// TODO: document
+/// Get a string from a TOML document.
+///
+/// ## Examples
+/// 
+/// ```gleam
+/// let assert Ok(parsed) = parse("a.b.c = \"ok\"")
+/// get_string(parsed, ["a", "b", "c"])
+/// // -> Ok("ok")
+/// ```
+///
 pub fn get_string(
   toml: Map(String, Toml),
   key: List(String),
@@ -92,7 +163,16 @@ pub fn get_string(
 }
 
 // TODO: test
-// TODO: document
+/// Get a date from a TOML document.
+///
+/// ## Examples
+/// 
+/// ```gleam
+/// let assert Ok(parsed) = parse("a.b.c = 1979-05-27")
+/// get_date(parsed, ["a", "b", "c"])
+/// // -> Ok("1979-05-27")
+/// ```
+///
 pub fn get_date(
   toml: Map(String, Toml),
   key: List(String),
@@ -105,7 +185,16 @@ pub fn get_date(
 }
 
 // TODO: test
-// TODO: document
+/// Get a time from a TOML document.
+///
+/// ## Examples
+/// 
+/// ```gleam
+/// let assert Ok(parsed) = parse("a.b.c = 07:32:00")
+/// get_time(parsed, ["a", "b", "c"])
+/// // -> Ok("07:32:00")
+/// ```
+///
 pub fn get_time(
   toml: Map(String, Toml),
   key: List(String),
@@ -118,7 +207,16 @@ pub fn get_time(
 }
 
 // TODO: test
-// TODO: document
+/// Get a date-time from a TOML document.
+///
+/// ## Examples
+/// 
+/// ```gleam
+/// let assert Ok(parsed) = parse("a.b.c = 1979-05-27T07:32:00")
+/// get_date_time(parsed, ["a", "b", "c"])
+/// // -> Ok("1979-05-27T07:32:00")
+/// ```
+///
 pub fn get_date_time(
   toml: Map(String, Toml),
   key: List(String),
@@ -131,7 +229,16 @@ pub fn get_date_time(
 }
 
 // TODO: test
-// TODO: document
+/// Get an array from a TOML document.
+///
+/// ## Examples
+/// 
+/// ```gleam
+/// let assert Ok(parsed) = parse("a.b.c = [1, 2]")
+/// get_array(parsed, ["a", "b", "c"])
+/// // -> Ok([Int(1), Int(2)])
+/// ```
+///
 pub fn get_array(
   toml: Map(String, Toml),
   key: List(String),
@@ -145,7 +252,16 @@ pub fn get_array(
 }
 
 // TODO: test
-// TODO: document
+/// Get a table from a TOML document.
+///
+/// ## Examples
+/// 
+/// ```gleam
+/// let assert Ok(parsed) = parse("a.b.c = { d = 1 }")
+/// get_table(parsed, ["a", "b", "c"])
+/// // -> Ok(map.from_list([#("d", Int(1))]))
+/// ```
+///
 pub fn get_table(
   toml: Map(String, Toml),
   key: List(String),
