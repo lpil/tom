@@ -1,28 +1,3 @@
-// - [x] Bare key
-//   - [ ] error tests
-// - [ ] Quoted key
-//   - [ ] error tests
-// - [ ] String
-//   - [ ] error tests
-// - [ ] Integer
-//   - [ ] error tests
-// - [ ] Float
-//   - [ ] error tests
-// - [x] Boolean
-//   - [ ] error tests
-// - [ ] Offset Date-Time
-//   - [ ] error tests
-// - [ ] Local Date-Time
-//   - [ ] error tests
-// - [ ] Local Date
-//   - [ ] error tests
-// - [ ] Local Time
-//   - [ ] error tests
-// - [ ] Array
-//   - [ ] error tests
-// - [ ] Inline Table
-//   - [ ] error tests
-
 import gleam/list
 import gleam/string
 import gleam/map.{type Map}
@@ -80,17 +55,40 @@ fn parse_key_value(
   toml: Map(String, Toml),
 ) -> Parsed(Map(String, Toml)) {
   use key, input <- do(parse_key(input, ""))
+  let input = skip_line_whitespace(input)
   use input <- expect(input, "=")
   let input = skip_line_whitespace(input)
   use value, input <- do(parse_value(input))
+  use input <- expect_end_of_line(input)
   let toml = map.insert(toml, key, value)
   Ok(#(toml, input))
 }
 
+fn expect_end_of_line(input: Tokens, next: fn(Tokens) -> Parsed(a)) -> Parsed(a) {
+  case input {
+    ["\n", ..input] -> next(input)
+    ["\r\n", ..input] -> next(input)
+    [g, ..] -> Error(Unexpected(g, "\n"))
+    [] -> Error(Unexpected("EOF", "\n"))
+  }
+}
+
 fn parse_value(input) -> Parsed(Toml) {
   case input {
-    ["t", "r", "u", "e"] -> Ok(#(Bool(True), []))
-    ["f", "a", "l", "s", "e"] -> Ok(#(Bool(False), []))
+    ["t", "r", "u", "e", ..input] -> Ok(#(Bool(True), input))
+    ["f", "a", "l", "s", "e", ..input] -> Ok(#(Bool(False), input))
+
+    ["0", ..]
+    | ["1", ..]
+    | ["2", ..]
+    | ["3", ..]
+    | ["4", ..]
+    | ["5", ..]
+    | ["6", ..]
+    | ["7", ..]
+    | ["8", ..]
+    | ["9", ..] -> parse_number(input, 0)
+
     [g, ..] -> Error(Unexpected(g, "value"))
     [] -> Error(Unexpected("EOF", "value"))
   }
@@ -99,18 +97,27 @@ fn parse_value(input) -> Parsed(Toml) {
 fn parse_key(input: Tokens, name: String) -> Parsed(String) {
   case input {
     ["=", ..] -> Error(Unexpected("=", expected: "key"))
-    ["\"", ..input] -> parse_key_quoted(input, name)
+    ["\"", ..input] -> parse_key_quoted(input, "\"", name)
+    ["'", ..input] -> parse_key_quoted(input, "'", name)
     _ -> parse_key_bare(input, name)
   }
 }
 
-fn parse_key_quoted(input: Tokens, name: String) -> Parsed(String) {
-  todo
+fn parse_key_quoted(
+  input: Tokens,
+  close: String,
+  name: String,
+) -> Parsed(String) {
+  case input {
+    [g, ..input] if g == close -> Ok(#(name, input))
+    [g, ..input] -> parse_key_quoted(input, close, name <> g)
+    [] -> Error(Unexpected("EOF", close))
+  }
 }
 
 fn parse_key_bare(input: Tokens, name: String) -> Parsed(String) {
   case input {
-    [" ", ..input] if name != "" -> Ok(#(name, skip_whitespace(input)))
+    [" ", ..input] if name != "" -> Ok(#(name, input))
     ["=", ..] if name != "" -> Ok(#(name, input))
     ["\n", ..] if name != "" -> Error(Unexpected("\n", "="))
     ["\r\n", ..] if name != "" -> Error(Unexpected("\n", "="))
@@ -165,5 +172,31 @@ fn expect(
     [g, ..input] if g == expected -> next(input)
     [g, ..] -> Error(Unexpected(g, expected))
     [] -> Error(Unexpected("EOF", expected))
+  }
+}
+
+fn parse_number(input: Tokens, number: Int) -> Parsed(Toml) {
+  case input {
+    // // A dot, the number is a float
+    // [".", ..rest] if mode == ParseInt ->
+    //   parse_number(rest, number <> ".", ParseFloat, start)
+    // "e-" <> rest if mode == ParseFloat ->
+    //   parse_number(rest, number <> "e-", ParseFloatExponent, start)
+    // "e" <> rest if mode == ParseFloat ->
+    //   parse_number(rest, number <> "e", ParseFloatExponent, start)
+    ["_", ..input] -> parse_number(input, number)
+    ["0", ..input] -> parse_number(input, number * 10 + 0)
+    ["1", ..input] -> parse_number(input, number * 10 + 1)
+    ["2", ..input] -> parse_number(input, number * 10 + 2)
+    ["3", ..input] -> parse_number(input, number * 10 + 3)
+    ["4", ..input] -> parse_number(input, number * 10 + 4)
+    ["5", ..input] -> parse_number(input, number * 10 + 5)
+    ["6", ..input] -> parse_number(input, number * 10 + 6)
+    ["7", ..input] -> parse_number(input, number * 10 + 7)
+    ["8", ..input] -> parse_number(input, number * 10 + 8)
+    ["9", ..input] -> parse_number(input, number * 10 + 9)
+
+    // Anything else and the number is terminated
+    input -> Ok(#(Int(number), input))
   }
 }

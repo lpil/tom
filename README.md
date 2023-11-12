@@ -20,3 +20,28 @@ gleam add tom
 ```
 
 and its documentation can be found at <https://hexdocs.pm/tom>.
+
+## Status
+
+- [x] Bare key
+- [x] Double quoted key
+- [x] Single quoted key
+- [ ] Multi-segment key
+- [ ] Mixed multi-segment key
+- [ ] String
+- [ ] Positive integer operator
+- [ ] Negative integer operator
+- [x] Decimal integer
+- [x] Decimal integer with underscores
+- [ ] Hex integer
+- [ ] Octal integer
+- [ ] Binary integer
+- [ ] Float
+- [ ] Float with exponent
+- [x] Boolean
+- [ ] Offset Date-Time
+- [ ] Local Date-Time
+- [ ] Local Date
+- [ ] Local Time
+- [ ] Array
+- [ ] Inline Table
