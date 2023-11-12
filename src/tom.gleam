@@ -426,8 +426,10 @@ fn parse_string(input: Tokens, string: String) -> Parsed(Toml) {
     ["\\", "r", ..input] -> parse_string(input, string <> "\r")
     ["\\", "\"", ..input] -> parse_string(input, string <> "\"")
     ["\\", "\\", ..input] -> parse_string(input, string <> "\\")
+    [] -> Error(Unexpected("EOF", "\""))
+    ["\n", ..] -> Error(Unexpected("\n", "\""))
+    ["\r\n", ..] -> Error(Unexpected("\r\n", "\""))
     // ["\\", "u", ..input] -> parse_string_unicode(input, string)
     [g, ..input] -> parse_string(input, string <> g)
-    [] -> Error(Unexpected("EOF", "\""))
   }
 }

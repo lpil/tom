@@ -344,3 +344,15 @@ pub fn parse_inline_trailing_comma_table_test() {
   |> tom.parse
   |> should.equal(Ok(expected))
 }
+
+pub fn parse_invalid_newline_in_string_test() {
+  "a = \"\n\""
+  |> tom.parse
+  |> should.equal(Error(tom.Unexpected("\n", "\"")))
+}
+
+pub fn parse_invalid_newline_windows_in_string_test() {
+  "a = \"\r\n\""
+  |> tom.parse
+  |> should.equal(Error(tom.Unexpected("\r\n", "\"")))
+}
