@@ -1,25 +1,29 @@
 # tom
 
+A (not quite complete) pure Gleam TOML parser!
+
 [![Package Version](https://img.shields.io/hexpm/v/tom)](https://hex.pm/packages/tom)
 [![Hex Docs](https://img.shields.io/badge/hex-docs-ffaff3)](https://hexdocs.pm/tom/)
 
-## Quick start
-
-```sh
-gleam run   # Run the project
-gleam test  # Run the tests
-gleam shell # Run an Erlang shell
-```
-
-## Installation
-
-If available on Hex this package can be added to your Gleam project:
 
 ```sh
 gleam add tom
 ```
+```gleam
+import tom
 
-and its documentation can be found at <https://hexdocs.pm/tom>.
+const config = "
+  name = \"tom\"
+  version = \"0.1.0\"
+"
+
+pub fn main() {
+  let assert Ok(parsed) = tom.parse(config)
+  // Now do stuff with your data!
+}
+```
+
+Further documentation can be found at <https://hexdocs.pm/tom>.
 
 ## Status
 

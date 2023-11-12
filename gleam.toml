@@ -1,13 +1,10 @@
 name = "tom"
 version = "0.1.0"
 
-# Fill out these fields if you intend to generate HTML documentation or publish
-# your project to the Hex package manager.
-#
-# description = ""
-# licences = ["Apache-2.0"]
-# repository = { type = "github", user = "username", repo = "project" }
-# links = [{ title = "Website", href = "https://gleam.run" }]
+description = "A (not quite complete) pure Gleam TOML parser!"
+licences = ["Apache-2.0"]
+repository = { type = "github", user = "lpil", repo = "toml" }
+links = [{ title = "TOML website", href = "https://toml.io/en/" }]
 
 [dependencies]
 gleam_stdlib = "~> 0.32"
