@@ -37,6 +37,9 @@ Further documentation can be found at <https://hexdocs.pm/tom>.
 - [x] Sub-table in array of tables
 - [x] String
 - [ ] Multi-line string
+- [x] Single quote string
+- [ ] Multi-line single quote string
+- [ ] String \\\\n escape sequence
 - [ ] String \b escape sequence
 - [x] String \t escape sequence
 - [x] String \n escape sequence

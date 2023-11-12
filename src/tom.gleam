@@ -1,6 +1,5 @@
 import gleam/int
 import gleam/list
-import gleam/result
 import gleam/string
 import gleam/map.{type Map}
 
@@ -226,6 +225,7 @@ fn parse_value(input) -> Parsed(Toml) {
     | ["8", ..]
     | ["9", ..] -> parse_number(input, 0, Positive)
 
+    ["'", ..input] -> parse_literal_string(input, "")
     ["\"", ..input] -> parse_string(input, "")
 
     [g, ..] -> Error(Unexpected(g, "value"))
@@ -481,6 +481,16 @@ fn parse_string(input: Tokens, string: String) -> Parsed(Toml) {
     ["\r\n", ..] -> Error(Unexpected("\r\n", "\""))
     // ["\\", "u", ..input] -> parse_string_unicode(input, string)
     [g, ..input] -> parse_string(input, string <> g)
+  }
+}
+
+fn parse_literal_string(input: Tokens, string: String) -> Parsed(Toml) {
+  case input {
+    [] -> Error(Unexpected("EOF", "\""))
+    ["\n", ..] -> Error(Unexpected("\n", "'"))
+    ["\r\n", ..] -> Error(Unexpected("\r\n", "'"))
+    ["'", ..input] -> Ok(#(String(string), input))
+    [g, ..input] -> parse_literal_string(input, string <> g)
   }
 }
 

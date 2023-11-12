@@ -434,3 +434,10 @@ shape = \"round\"
   |> tom.parse
   |> should.equal(Ok(expected))
 }
+
+pub fn single_quote_string_test() {
+  let expected = map.from_list([#("a", tom.String("\\n"))])
+  "a = '\\n'\n"
+  |> tom.parse
+  |> should.equal(Ok(expected))
+}
