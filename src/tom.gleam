@@ -1,6 +1,7 @@
 import gleam/int
 import gleam/list
 import gleam/string
+import gleam/result
 import gleam/map.{type Map}
 
 pub type Toml {
@@ -15,6 +16,171 @@ pub type Toml {
   ArrayOfTables(List(Map(String, Toml)))
   Table(Map(String, Toml))
   InlineTable(Map(String, Toml))
+}
+
+pub type GetError {
+  NotFound(key: List(String))
+  WrongType(key: List(String), expected: String, got: String)
+}
+
+// TODO: test
+// TODO: document
+pub fn get(toml: Map(String, Toml), key: List(String)) -> Result(Toml, GetError) {
+  case key {
+    [] -> Error(NotFound([]))
+    [k] -> result.replace_error(map.get(toml, k), NotFound([k]))
+    [k, ..key] -> {
+      case map.get(toml, k) {
+        Ok(Table(t)) -> push_key(get(t, key), k)
+        Ok(other) -> Error(WrongType([k], "Table", classify(other)))
+        Error(_) -> Error(NotFound([k]))
+      }
+    }
+  }
+}
+
+// TODO: test
+// TODO: document
+pub fn get_int(
+  toml: Map(String, Toml),
+  key: List(String),
+) -> Result(Int, GetError) {
+  case get(toml, key) {
+    Ok(Int(i)) -> Ok(i)
+    Ok(other) -> Error(WrongType(key, "Int", classify(other)))
+    Error(e) -> Error(e)
+  }
+}
+
+// TODO: test
+// TODO: document
+pub fn get_float(
+  toml: Map(String, Toml),
+  key: List(String),
+) -> Result(Float, GetError) {
+  case get(toml, key) {
+    Ok(Float(i)) -> Ok(i)
+    Ok(other) -> Error(WrongType(key, "Float", classify(other)))
+    Error(e) -> Error(e)
+  }
+}
+
+// TODO: test
+// TODO: document
+pub fn get_bool(
+  toml: Map(String, Toml),
+  key: List(String),
+) -> Result(Bool, GetError) {
+  case get(toml, key) {
+    Ok(Bool(i)) -> Ok(i)
+    Ok(other) -> Error(WrongType(key, "Bool", classify(other)))
+    Error(e) -> Error(e)
+  }
+}
+
+// TODO: test
+// TODO: document
+pub fn get_string(
+  toml: Map(String, Toml),
+  key: List(String),
+) -> Result(String, GetError) {
+  case get(toml, key) {
+    Ok(String(i)) -> Ok(i)
+    Ok(other) -> Error(WrongType(key, "String", classify(other)))
+    Error(e) -> Error(e)
+  }
+}
+
+// TODO: test
+// TODO: document
+pub fn get_date(
+  toml: Map(String, Toml),
+  key: List(String),
+) -> Result(String, GetError) {
+  case get(toml, key) {
+    Ok(Date(i)) -> Ok(i)
+    Ok(other) -> Error(WrongType(key, "Date", classify(other)))
+    Error(e) -> Error(e)
+  }
+}
+
+// TODO: test
+// TODO: document
+pub fn get_time(
+  toml: Map(String, Toml),
+  key: List(String),
+) -> Result(String, GetError) {
+  case get(toml, key) {
+    Ok(Time(i)) -> Ok(i)
+    Ok(other) -> Error(WrongType(key, "Time", classify(other)))
+    Error(e) -> Error(e)
+  }
+}
+
+// TODO: test
+// TODO: document
+pub fn get_date_time(
+  toml: Map(String, Toml),
+  key: List(String),
+) -> Result(String, GetError) {
+  case get(toml, key) {
+    Ok(DateTime(i)) -> Ok(i)
+    Ok(other) -> Error(WrongType(key, "DateTime", classify(other)))
+    Error(e) -> Error(e)
+  }
+}
+
+// TODO: test
+// TODO: document
+pub fn get_array(
+  toml: Map(String, Toml),
+  key: List(String),
+) -> Result(List(Toml), GetError) {
+  case get(toml, key) {
+    Ok(Array(i)) -> Ok(i)
+    Ok(ArrayOfTables(i)) -> Ok(list.map(i, Table))
+    Ok(other) -> Error(WrongType(key, "Array", classify(other)))
+    Error(e) -> Error(e)
+  }
+}
+
+// TODO: test
+// TODO: document
+pub fn get_table(
+  toml: Map(String, Toml),
+  key: List(String),
+) -> Result(Map(String, Toml), GetError) {
+  case get(toml, key) {
+    Ok(Table(i)) -> Ok(i)
+    Ok(InlineTable(i)) -> Ok(i)
+    Ok(other) -> Error(WrongType(key, "Table", classify(other)))
+    Error(e) -> Error(e)
+  }
+}
+
+fn classify(toml: Toml) -> String {
+  case toml {
+    Int(_) -> "Int"
+    Float(_) -> "Float"
+    Bool(_) -> "Bool"
+    String(_) -> "String"
+    Date(_) -> "Date"
+    Time(_) -> "Time"
+    DateTime(_) -> "DateTime"
+    Array(_) -> "Array"
+    ArrayOfTables(_) -> "Array"
+    Table(_) -> "Table"
+    InlineTable(_) -> "Table"
+  }
+}
+
+fn push_key(result: Result(t, GetError), key: String) -> Result(t, GetError) {
+  case result {
+    Ok(t) -> Ok(t)
+    Error(NotFound(path)) -> Error(NotFound([key, ..path]))
+    Error(WrongType(path, expected, got)) ->
+      Error(WrongType([key, ..path], expected, got))
+  }
 }
 
 pub type ParseError {
