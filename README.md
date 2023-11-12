@@ -26,8 +26,10 @@ and its documentation can be found at <https://hexdocs.pm/tom>.
 - [x] Bare key
 - [x] Double quoted key
 - [x] Single quoted key
-- [ ] Multi-segment key
-- [ ] Mixed multi-segment key
+- [x] Multi-segment key
+- [x] Mixed multi-segment key
+- [ ] Table
+- [ ] Array of tables
 - [x] String
 - [ ] Multi-line string
 - [ ] String \b escape sequence
@@ -55,5 +57,5 @@ and its documentation can be found at <https://hexdocs.pm/tom>.
 - [ ] Local Date-Time
 - [ ] Local Date
 - [ ] Local Time
-- [ ] Array
+- [x] Array
 - [ ] Inline Table

@@ -127,6 +127,8 @@ fn parse_value(input) -> Parsed(Toml) {
     ["t", "r", "u", "e", ..input] -> Ok(#(Bool(True), input))
     ["f", "a", "l", "s", "e", ..input] -> Ok(#(Bool(False), input))
 
+    ["[", ..input] -> parse_array(input, [])
+
     ["+", ..input] -> parse_number(input, 0, Positive)
     ["-", ..input] -> parse_number(input, 0, Negative)
     ["0", ..]
@@ -241,6 +243,27 @@ fn expect(
     [g, ..input] if g == expected -> next(input)
     [g, ..] -> Error(Unexpected(g, expected))
     [] -> Error(Unexpected("EOF", expected))
+  }
+}
+
+fn parse_array(input: Tokens, elements: List(Toml)) -> Parsed(Toml) {
+  let input = skip_whitespace(input)
+  case input {
+    ["]", ..input] -> Ok(#(Array(list.reverse(elements)), input))
+    _ -> {
+      use element, input <- do(parse_value(input))
+      let elements = [element, ..elements]
+      let input = skip_whitespace(input)
+      case input {
+        ["]", ..input] -> Ok(#(Array(list.reverse(elements)), input))
+        [",", ..input] -> {
+          let input = skip_whitespace(input)
+          parse_array(input, elements)
+        }
+        [g, ..] -> Error(Unexpected(g, "]"))
+        [] -> Error(Unexpected("EOF", "]"))
+      }
+    }
   }
 }
 

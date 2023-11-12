@@ -165,6 +165,21 @@ pub fn parse_multi_segment_key_test() {
   |> should.equal(Ok(expected))
 }
 
+pub fn parse_multi_segment_key_quotes_test() {
+  let expected =
+    map.from_list([
+      #(
+        "1",
+        tom.Table(map.from_list([
+          #("two", tom.Table(map.from_list([#("3", tom.Bool(True))]))),
+        ])),
+      ),
+    ])
+  "\"1\".two.\"3\" = true\n"
+  |> tom.parse
+  |> should.equal(Ok(expected))
+}
+
 pub fn parse_multiple_keys_test() {
   let expected = map.from_list([#("a", tom.Int(1)), #("b", tom.Int(2))])
   "a = 1\nb = 2\n"
@@ -176,4 +191,24 @@ pub fn parse_duplicate_key_test() {
   "a = 1\na = 2\n"
   |> tom.parse
   |> should.equal(Error(tom.KeyAlreadyInUse(["a"])))
+}
+
+pub fn parse_conflicting_keys_test() {
+  "a = 1\na.b = 2\n"
+  |> tom.parse
+  |> should.equal(Error(tom.KeyAlreadyInUse(["a"])))
+}
+
+pub fn parse_array_test() {
+  let expected = map.from_list([#("a", tom.Array([tom.Int(1), tom.Int(2)]))])
+  "a = [1, 2]\n"
+  |> tom.parse
+  |> should.equal(Ok(expected))
+}
+
+pub fn parse_multi_line_array_test() {
+  let expected = map.from_list([#("a", tom.Array([tom.Int(1), tom.Int(2)]))])
+  "a = [\n  1 \n ,\n  2,\n]\n"
+  |> tom.parse
+  |> should.equal(Ok(expected))
 }
