@@ -435,9 +435,29 @@ shape = \"round\"
   |> should.equal(Ok(expected))
 }
 
-pub fn single_quote_string_test() {
+pub fn parse_single_quote_string_test() {
   let expected = map.from_list([#("a", tom.String("\\n"))])
   "a = '\\n'\n"
+  |> tom.parse
+  |> should.equal(Ok(expected))
+}
+
+pub fn parse_multi_line_string_test() {
+  let expected = map.from_list([#("a", tom.String("hello\nworld"))])
+  "a = \"\"\"
+hello
+world\"\"\"
+"
+  |> tom.parse
+  |> should.equal(Ok(expected))
+}
+
+pub fn parse_multi_line_single_quote_string_test() {
+  let expected = map.from_list([#("a", tom.String("hello\\n\nworld"))])
+  "a = '''
+hello\\n
+world'''
+"
   |> tom.parse
   |> should.equal(Ok(expected))
 }
