@@ -39,7 +39,7 @@ Further documentation can be found at <https://hexdocs.pm/tom>.
 - [x] Multi-line string
 - [x] Single quote string
 - [x] Multi-line single quote string
-- [ ] String \\\\n escape sequence
+- [x] String \\\\n escape sequence
 - [ ] String \b escape sequence
 - [x] String \t escape sequence
 - [x] String \n escape sequence

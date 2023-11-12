@@ -299,7 +299,7 @@ a = 1
 }
 
 pub fn parse_inline_table_empty_test() {
-  let expected = map.from_list([#("a", tom.Table(map.from_list([])))])
+  let expected = map.from_list([#("a", tom.InlineTable(map.from_list([])))])
   "a = {}\n"
   |> tom.parse
   |> should.equal(Ok(expected))
@@ -310,7 +310,7 @@ pub fn parse_inline_table_test() {
     map.from_list([
       #(
         "a",
-        tom.Table(map.from_list([
+        tom.InlineTable(map.from_list([
           #("a", tom.Int(1)),
           #("b", tom.Table(map.from_list([#("c", tom.Int(2))]))),
         ])),
@@ -330,7 +330,7 @@ pub fn parse_inline_trailing_comma_table_test() {
     map.from_list([
       #(
         "a",
-        tom.Table(map.from_list([
+        tom.InlineTable(map.from_list([
           #("a", tom.Int(1)),
           #("b", tom.Table(map.from_list([#("c", tom.Int(2))]))),
         ])),
@@ -457,6 +457,47 @@ pub fn parse_multi_line_single_quote_string_test() {
   "a = '''
 hello\\n
 world'''
+"
+  |> tom.parse
+  |> should.equal(Ok(expected))
+}
+
+pub fn parse_multi_line_single_quote_string_too_many_quotes_test() {
+  "a = '''
+''''
+'''
+"
+  |> tom.parse
+  |> should.equal(Error(tom.Unexpected("''''", "'''")))
+}
+
+pub fn parse_multi_line_string_escape_newline_test() {
+  let expected =
+    map.from_list([
+      #("a", tom.String("The quick brown fox jumps over the lazy dog.")),
+    ])
+  "a = \"\"\"
+The quick brown \\
+
+
+  fox jumps over \\
+    the lazy dog.\"\"\"
+"
+  |> tom.parse
+  |> should.equal(Ok(expected))
+}
+
+pub fn parse_multi_line_string_escape_newline_windows_test() {
+  let expected =
+    map.from_list([
+      #("a", tom.String("The quick brown fox jumps over the lazy dog.")),
+    ])
+  "a = \"\"\"
+The quick brown \\\r\n
+
+
+  fox jumps over \\\r\n
+    the lazy dog.\"\"\"
 "
   |> tom.parse
   |> should.equal(Ok(expected))

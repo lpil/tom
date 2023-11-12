@@ -14,6 +14,7 @@ pub type Toml {
   Array(List(Toml))
   ArrayOfTables(List(Map(String, Toml)))
   Table(Map(String, Toml))
+  InlineTable(Map(String, Toml))
 }
 
 pub type ParseError {
@@ -343,13 +344,13 @@ fn parse_inline_table(
 ) -> Parsed(Toml) {
   let input = skip_whitespace(input)
   case input {
-    ["}", ..input] -> Ok(#(Table(properties), input))
+    ["}", ..input] -> Ok(#(InlineTable(properties), input))
     _ ->
       case parse_inline_table_property(input, properties) {
         Ok(#(properties, input)) -> {
           let input = skip_whitespace(input)
           case input {
-            ["}", ..input] -> Ok(#(Table(properties), input))
+            ["}", ..input] -> Ok(#(InlineTable(properties), input))
             [",", ..input] -> {
               let input = skip_whitespace(input)
               parse_inline_table(input, properties)
@@ -489,6 +490,11 @@ fn parse_string(input: Tokens, string: String) -> Parsed(Toml) {
 fn parse_multi_line_string(input: Tokens, string: String) -> Parsed(Toml) {
   case input {
     ["\"", "\"", "\"", ..input] -> Ok(#(String(string), input))
+    ["\\", "\n", ..input] ->
+      parse_multi_line_string(skip_whitespace(input), string)
+    ["\\", "\r\n", ..input] ->
+      parse_multi_line_string(skip_whitespace(input), string)
+    ["\r\n", ..input] if string == "" -> parse_multi_line_string(input, string)
     ["\n", ..input] if string == "" -> parse_multi_line_string(input, string)
     ["\r\n", ..input] if string == "" -> parse_multi_line_string(input, string)
     ["\\", "t", ..input] -> parse_multi_line_string(input, string <> "\t")
@@ -506,12 +512,13 @@ fn parse_multi_line_literal_string(
   string: String,
 ) -> Parsed(Toml) {
   case input {
+    [] -> Error(Unexpected("EOF", "\""))
+    ["'", "'", "'", "'", ..] -> Error(Unexpected("''''", "'''"))
     ["'", "'", "'", ..input] -> Ok(#(String(string), input))
     ["\n", ..input] if string == "" ->
       parse_multi_line_literal_string(input, string)
     ["\r\n", ..input] if string == "" ->
       parse_multi_line_literal_string(input, string)
-    [] -> Error(Unexpected("EOF", "\""))
     [g, ..input] -> parse_multi_line_literal_string(input, string <> g)
   }
 }
