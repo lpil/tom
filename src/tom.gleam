@@ -17,6 +17,7 @@ pub type Toml {
 
 pub type ParseError {
   Unexpected(got: String, expected: String)
+  KeyAlreadyInUse(List(String))
 }
 
 type Tokens =
@@ -56,14 +57,60 @@ fn parse_key_value(
   input: Tokens,
   toml: Map(String, Toml),
 ) -> Parsed(Map(String, Toml)) {
-  use key, input <- do(parse_key(input, ""))
+  use key, input <- do(parse_key(input, []))
   let input = skip_line_whitespace(input)
   use input <- expect(input, "=")
   let input = skip_line_whitespace(input)
   use value, input <- do(parse_value(input))
   use input <- expect_end_of_line(input)
-  let toml = map.insert(toml, key, value)
-  Ok(#(toml, input))
+  case insert(toml, key, value) {
+    Ok(toml) -> Ok(#(toml, input))
+    Error(e) -> Error(e)
+  }
+}
+
+fn insert(
+  table: Map(String, Toml),
+  key: List(String),
+  value: Toml,
+) -> Result(Map(String, Toml), ParseError) {
+  case insert_loop(table, key, value) {
+    Ok(table) -> Ok(table)
+    Error(path) -> Error(KeyAlreadyInUse(path))
+  }
+}
+
+fn insert_loop(
+  table: Map(String, Toml),
+  key: List(String),
+  value: Toml,
+) -> Result(Map(String, Toml), List(String)) {
+  case key {
+    [] -> panic as "unreachable"
+    [k] -> {
+      case map.get(table, k) {
+        Error(Nil) -> Ok(map.insert(table, k, value))
+        Ok(_) -> Error([k])
+      }
+    }
+    [k, ..key] -> {
+      case map.get(table, k) {
+        Error(Nil) -> {
+          case insert_loop(map.new(), key, value) {
+            Ok(inner) -> Ok(map.insert(table, k, Table(inner)))
+            Error(path) -> Error([k, ..path])
+          }
+        }
+        Ok(Table(inner)) -> {
+          case insert_loop(inner, key, value) {
+            Ok(inner) -> Ok(map.insert(table, k, Table(inner)))
+            Error(path) -> Error([k, ..path])
+          }
+        }
+        Ok(_) -> Error([k])
+      }
+    }
+  }
 }
 
 fn expect_end_of_line(input: Tokens, next: fn(Tokens) -> Parsed(a)) -> Parsed(a) {
@@ -100,12 +147,27 @@ fn parse_value(input) -> Parsed(Toml) {
   }
 }
 
-fn parse_key(input: Tokens, name: String) -> Parsed(String) {
+fn parse_key(input: Tokens, segments: List(String)) -> Parsed(List(String)) {
+  use segment, input <- do(parse_key_segment(input))
+  let segments = [segment, ..segments]
+  let input = skip_line_whitespace(input)
+
   case input {
-    ["=", ..] -> Error(Unexpected("=", expected: "key"))
-    ["\"", ..input] -> parse_key_quoted(input, "\"", name)
-    ["'", ..input] -> parse_key_quoted(input, "'", name)
-    _ -> parse_key_bare(input, name)
+    [".", ..input] -> parse_key(input, segments)
+    _ -> Ok(#(list.reverse(segments), input))
+  }
+}
+
+fn parse_key_segment(input: Tokens) -> Parsed(String) {
+  let input = skip_line_whitespace(input)
+  case input {
+    ["=", ..] -> Error(Unexpected("=", "Key"))
+    ["\n", ..] -> Error(Unexpected("\n", "Key"))
+    ["\r\n", ..] -> Error(Unexpected("\r\n", "Key"))
+    ["[", ..] -> Error(Unexpected("[", "Key"))
+    ["\"", ..input] -> parse_key_quoted(input, "\"", "")
+    ["'", ..input] -> parse_key_quoted(input, "'", "")
+    _ -> parse_key_bare(input, "")
   }
 }
 
@@ -125,6 +187,7 @@ fn parse_key_bare(input: Tokens, name: String) -> Parsed(String) {
   case input {
     [" ", ..input] if name != "" -> Ok(#(name, input))
     ["=", ..] if name != "" -> Ok(#(name, input))
+    [".", ..] if name != "" -> Ok(#(name, input))
     ["\n", ..] if name != "" -> Error(Unexpected("\n", "="))
     ["\r\n", ..] if name != "" -> Error(Unexpected("\n", "="))
     ["\n", ..] -> Error(Unexpected("\n", "key"))

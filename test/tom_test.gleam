@@ -149,3 +149,31 @@ pub fn parse_bigger_float_test() {
   |> tom.parse
   |> should.equal(Ok(expected))
 }
+
+pub fn parse_multi_segment_key_test() {
+  let expected =
+    map.from_list([
+      #(
+        "one",
+        tom.Table(map.from_list([
+          #("two", tom.Table(map.from_list([#("three", tom.Bool(True))]))),
+        ])),
+      ),
+    ])
+  "one.two.three = true\n"
+  |> tom.parse
+  |> should.equal(Ok(expected))
+}
+
+pub fn parse_multiple_keys_test() {
+  let expected = map.from_list([#("a", tom.Int(1)), #("b", tom.Int(2))])
+  "a = 1\nb = 2\n"
+  |> tom.parse
+  |> should.equal(Ok(expected))
+}
+
+pub fn parse_duplicate_key_test() {
+  "a = 1\na = 2\n"
+  |> tom.parse
+  |> should.equal(Error(tom.KeyAlreadyInUse(["a"])))
+}
