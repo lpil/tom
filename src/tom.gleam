@@ -1,5 +1,6 @@
 import gleam/int
 import gleam/list
+import gleam/result
 import gleam/string
 import gleam/map.{type Map}
 
@@ -85,6 +86,7 @@ fn parse_table_header(input: Tokens) -> Parsed(List(String)) {
   let input = skip_line_whitespace(input)
   use key, input <- do(parse_key(input, []))
   use input <- expect(input, "]")
+  let input = skip_line_whitespace(input)
   use input <- expect_end_of_line(input)
   Ok(#(key, input))
 }
@@ -157,6 +159,13 @@ fn insert_loop(
         Error(Nil) -> {
           case insert_loop(map.new(), key, value) {
             Ok(inner) -> Ok(map.insert(table, k, Table(inner)))
+            Error(path) -> Error([k, ..path])
+          }
+        }
+        Ok(ArrayOfTables([inner, ..rest])) -> {
+          case insert_loop(inner, key, value) {
+            Ok(inner) ->
+              Ok(map.insert(table, k, ArrayOfTables([inner, ..rest])))
             Error(path) -> Error([k, ..path])
           }
         }

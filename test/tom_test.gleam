@@ -401,3 +401,36 @@ a = 3
   |> tom.parse
   |> should.equal(Ok(expected))
 }
+
+pub fn parse_array_of_tables_with_subtable_test() {
+  let expected =
+    map.from_list([
+      #(
+        "fruits",
+        tom.ArrayOfTables([
+          map.from_list([]),
+          map.from_list([
+            #("name", tom.String("apple")),
+            #(
+              "physical",
+              tom.Table(map.from_list([
+                #("color", tom.String("red")),
+                #("shape", tom.String("round")),
+              ])),
+            ),
+          ]),
+        ]),
+      ),
+    ])
+  "[[fruits]]
+
+[[fruits]]
+name = \"apple\"
+
+[fruits.physical]  # subtable
+color = \"red\"
+shape = \"round\"
+"
+  |> tom.parse
+  |> should.equal(Ok(expected))
+}

@@ -34,7 +34,7 @@ Further documentation can be found at <https://hexdocs.pm/tom>.
 - [x] Mixed multi-segment key
 - [x] Table
 - [x] Array of tables
-- [ ] Sub-table in array of tables
+- [x] Sub-table in array of tables
 - [x] String
 - [ ] Multi-line string
 - [ ] String \b escape sequence
