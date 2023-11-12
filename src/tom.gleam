@@ -12,6 +12,7 @@ pub type Toml {
   Time(String)
   DateTime(String)
   Array(List(Toml))
+  ArrayOfTables(List(Map(String, Toml)))
   Table(Map(String, Toml))
 }
 
@@ -31,7 +32,10 @@ pub fn parse(input: String) -> Result(Map(String, Toml), ParseError) {
   let input = drop_comments(input, [])
   let input = skip_whitespace(input)
   use toml, input <- do(parse_table(input, map.new()))
-  parse_tables(input, toml)
+  case parse_tables(input, toml) {
+    Ok(toml) -> Ok(reverse_arrays_of_tables_table(toml))
+    Error(e) -> Error(e)
+  }
 }
 
 fn parse_tables(
@@ -39,6 +43,17 @@ fn parse_tables(
   toml: Map(String, Toml),
 ) -> Result(Map(String, Toml), ParseError) {
   case input {
+    ["[", "[", ..input] -> {
+      case parse_array_of_tables(input) {
+        Error(e) -> Error(e)
+        Ok(#(#(key, table), input)) -> {
+          case insert(toml, key, ArrayOfTables([table])) {
+            Ok(toml) -> parse_tables(input, toml)
+            Error(e) -> Error(e)
+          }
+        }
+      }
+    }
     ["[", ..input] -> {
       case parse_table_and_header(input) {
         Error(e) -> Error(e)
@@ -53,6 +68,17 @@ fn parse_tables(
     [g, ..] -> Error(Unexpected(g, "["))
     [] -> Ok(toml)
   }
+}
+
+fn parse_array_of_tables(
+  input: Tokens,
+) -> Parsed(#(List(String), Map(String, Toml))) {
+  let input = skip_line_whitespace(input)
+  use key, input <- do(parse_key(input, []))
+  use input <- expect(input, "]")
+  use input <- expect(input, "]")
+  use table, input <- do(parse_table(input, map.new()))
+  Ok(#(#(key, table), input))
 }
 
 fn parse_table_header(input: Tokens) -> Parsed(List(String)) {
@@ -123,7 +149,7 @@ fn insert_loop(
     [k] -> {
       case map.get(table, k) {
         Error(Nil) -> Ok(map.insert(table, k, value))
-        Ok(_) -> Error([k])
+        Ok(old) -> merge(table, k, old, value)
       }
     }
     [k, ..key] -> {
@@ -143,6 +169,21 @@ fn insert_loop(
         Ok(_) -> Error([k])
       }
     }
+  }
+}
+
+fn merge(
+  table: Map(String, Toml),
+  key: String,
+  old: Toml,
+  new: Toml,
+) -> Result(Map(String, Toml), List(String)) {
+  case old, new {
+    // When both are arrays of tables then they are merged together
+    ArrayOfTables(tables), ArrayOfTables(new) ->
+      Ok(map.insert(table, key, ArrayOfTables(list.append(new, tables))))
+
+    _, _ -> Error([key])
   }
 }
 
@@ -431,5 +472,33 @@ fn parse_string(input: Tokens, string: String) -> Parsed(Toml) {
     ["\r\n", ..] -> Error(Unexpected("\r\n", "\""))
     // ["\\", "u", ..input] -> parse_string_unicode(input, string)
     [g, ..input] -> parse_string(input, string <> g)
+  }
+}
+
+fn reverse_arrays_of_tables(toml: Toml) -> Toml {
+  case toml {
+    ArrayOfTables(tables) ->
+      ArrayOfTables(reverse_arrays_of_tables_array(tables, []))
+
+    Table(table) -> Table(reverse_arrays_of_tables_table(table))
+
+    _ -> toml
+  }
+}
+
+fn reverse_arrays_of_tables_table(table: Map(String, Toml)) -> Map(String, Toml) {
+  map.map_values(table, fn(_, v) { reverse_arrays_of_tables(v) })
+}
+
+fn reverse_arrays_of_tables_array(
+  array: List(Map(String, Toml)),
+  acc: List(Map(String, Toml)),
+) -> List(Map(String, Toml)) {
+  case array {
+    [] -> acc
+    [first, ..rest] -> {
+      let first = reverse_arrays_of_tables_table(first)
+      reverse_arrays_of_tables_array(rest, [first, ..acc])
+    }
   }
 }

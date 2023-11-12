@@ -33,7 +33,8 @@ Further documentation can be found at <https://hexdocs.pm/tom>.
 - [x] Multi-segment key
 - [x] Mixed multi-segment key
 - [x] Table
-- [ ] Array of tables
+- [x] Array of tables
+- [ ] Sub-table in array of tables
 - [x] String
 - [ ] Multi-line string
 - [ ] String \b escape sequence

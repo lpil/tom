@@ -356,3 +356,48 @@ pub fn parse_invalid_newline_windows_in_string_test() {
   |> tom.parse
   |> should.equal(Error(tom.Unexpected("\r\n", "\"")))
 }
+
+pub fn parse_array_of_tables_empty_test() {
+  let expected =
+    map.from_list([
+      #(
+        "a",
+        tom.ArrayOfTables([
+          map.from_list([]),
+          map.from_list([]),
+          map.from_list([]),
+        ]),
+      ),
+    ])
+  "[[a]]
+[[a]]
+[[a]]
+"
+  |> tom.parse
+  |> should.equal(Ok(expected))
+}
+
+pub fn parse_array_of_tables_nonempty_test() {
+  let expected =
+    map.from_list([
+      #(
+        "a",
+        tom.ArrayOfTables([
+          map.from_list([#("a", tom.Int(1))]),
+          map.from_list([#("a", tom.Int(2))]),
+          map.from_list([#("a", tom.Int(3))]),
+        ]),
+      ),
+    ])
+  "[[a]]
+a = 1
+  
+[[a]]
+a = 2
+  
+[[a]]
+a = 3
+"
+  |> tom.parse
+  |> should.equal(Ok(expected))
+}
