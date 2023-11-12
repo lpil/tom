@@ -1,3 +1,4 @@
+import gleam/int
 import gleam/list
 import gleam/string
 import gleam/map.{type Map}
@@ -199,6 +200,8 @@ fn parse_number(input: Tokens, number: Int, sign: Sign) -> Parsed(Toml) {
     ["8", ..input] -> parse_number(input, number * 10 + 8, sign)
     ["9", ..input] -> parse_number(input, number * 10 + 9, sign)
 
+    [".", ..input] -> parse_float(input, int.to_float(number), sign, 0.1)
+
     // Anything else and the number is terminated
     input -> {
       let number = case sign {
@@ -206,6 +209,45 @@ fn parse_number(input: Tokens, number: Int, sign: Sign) -> Parsed(Toml) {
         Negative -> -number
       }
       Ok(#(Int(number), input))
+    }
+  }
+}
+
+fn parse_float(
+  input: Tokens,
+  number: Float,
+  sign: Sign,
+  unit: Float,
+) -> Parsed(Toml) {
+  case input {
+    ["_", ..input] -> parse_float(input, number, sign, unit)
+    ["0", ..input] -> parse_float(input, number, sign, unit *. 0.1)
+    ["1", ..input] ->
+      parse_float(input, number +. 1.0 *. unit, sign, unit *. 0.1)
+    ["2", ..input] ->
+      parse_float(input, number +. 2.0 *. unit, sign, unit *. 0.1)
+    ["3", ..input] ->
+      parse_float(input, number +. 3.0 *. unit, sign, unit *. 0.1)
+    ["4", ..input] ->
+      parse_float(input, number +. 4.0 *. unit, sign, unit *. 0.1)
+    ["5", ..input] ->
+      parse_float(input, number +. 5.0 *. unit, sign, unit *. 0.1)
+    ["6", ..input] ->
+      parse_float(input, number +. 6.0 *. unit, sign, unit *. 0.1)
+    ["7", ..input] ->
+      parse_float(input, number +. 7.0 *. unit, sign, unit *. 0.1)
+    ["8", ..input] ->
+      parse_float(input, number +. 8.0 *. unit, sign, unit *. 0.1)
+    ["9", ..input] ->
+      parse_float(input, number +. 9.0 *. unit, sign, unit *. 0.1)
+
+    // Anything else and the number is terminated
+    input -> {
+      let number = case sign {
+        Positive -> number
+        Negative -> number *. -1.0
+      }
+      Ok(#(Float(number), input))
     }
   }
 }

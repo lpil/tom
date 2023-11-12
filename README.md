@@ -30,25 +30,25 @@ and its documentation can be found at <https://hexdocs.pm/tom>.
 - [ ] Mixed multi-segment key
 - [x] String
 - [ ] Multi-line string
-- [ ] String \b escape sequence.
-- [x] String \t escape sequence.
-- [x] String \n escape sequence.
-- [ ] String \f escape sequence.
-- [x] String \r escape sequence.
-- [ ] String \e escape sequence.
-- [x] String \" escape sequence.
-- [x] String \\ escape sequence.
-- [ ] String \xHH escape sequence.
-- [ ] String \uHHHH escape sequence.
-- [ ] String \UHHHHHHHH escape sequence.
-- [x] Positive integer operator
-- [x] Negative integer operator
+- [ ] String \b escape sequence
+- [x] String \t escape sequence
+- [x] String \n escape sequence
+- [ ] String \f escape sequence
+- [x] String \r escape sequence
+- [ ] String \e escape sequence
+- [x] String \" escape sequence
+- [x] String \\ escape sequence
+- [ ] String \xHH escape sequence
+- [ ] String \uHHHH escape sequence
+- [ ] String \UHHHHHHHH escape sequence
+- [x] Positive number operator
+- [x] Negative number operator
 - [x] Decimal integer
 - [x] Decimal integer with underscores
 - [ ] Hex integer
 - [ ] Octal integer
 - [ ] Binary integer
-- [ ] Float
+- [x] Float
 - [ ] Float with exponent
 - [x] Boolean
 - [ ] Offset Date-Time

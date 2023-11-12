@@ -135,3 +135,17 @@ pub fn parse_escaped_slash_test() {
   |> tom.parse
   |> should.equal(Ok(expected))
 }
+
+pub fn parse_float_test() {
+  let expected = map.from_list([#("it", tom.Float(1.0))])
+  "it = 1.0\n"
+  |> tom.parse
+  |> should.equal(Ok(expected))
+}
+
+pub fn parse_bigger_float_test() {
+  let expected = map.from_list([#("it", tom.Float(123_456_789.9876))])
+  "it = 123456789.9876\n"
+  |> tom.parse
+  |> should.equal(Ok(expected))
+}
