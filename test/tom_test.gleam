@@ -199,6 +199,13 @@ pub fn parse_conflicting_keys_test() {
   |> should.equal(Error(tom.KeyAlreadyInUse(["a"])))
 }
 
+pub fn parse_empty_array_test() {
+  let expected = map.from_list([#("a", tom.Array([]))])
+  "a = []\n"
+  |> tom.parse
+  |> should.equal(Ok(expected))
+}
+
 pub fn parse_array_test() {
   let expected = map.from_list([#("a", tom.Array([tom.Int(1), tom.Int(2)]))])
   "a = [1, 2]\n"
@@ -286,6 +293,53 @@ b.c = 2
 
 [b]
 a = 1
+"
+  |> tom.parse
+  |> should.equal(Ok(expected))
+}
+
+pub fn parse_inline_table_empty_test() {
+  let expected = map.from_list([#("a", tom.Table(map.from_list([])))])
+  "a = {}\n"
+  |> tom.parse
+  |> should.equal(Ok(expected))
+}
+
+pub fn parse_inline_table_test() {
+  let expected =
+    map.from_list([
+      #(
+        "a",
+        tom.Table(map.from_list([
+          #("a", tom.Int(1)),
+          #("b", tom.Table(map.from_list([#("c", tom.Int(2))]))),
+        ])),
+      ),
+    ])
+  "a = {
+  a = 1,
+  b.c = 2
+}
+"
+  |> tom.parse
+  |> should.equal(Ok(expected))
+}
+
+pub fn parse_inline_trailing_comma_table_test() {
+  let expected =
+    map.from_list([
+      #(
+        "a",
+        tom.Table(map.from_list([
+          #("a", tom.Int(1)),
+          #("b", tom.Table(map.from_list([#("c", tom.Int(2))]))),
+        ])),
+      ),
+    ])
+  "a = {
+  a = 1,
+  b.c = 2,
+}
 "
   |> tom.parse
   |> should.equal(Ok(expected))

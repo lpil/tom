@@ -58,4 +58,4 @@ and its documentation can be found at <https://hexdocs.pm/tom>.
 - [ ] Local Date
 - [ ] Local Time
 - [x] Array
-- [ ] Inline Table
+- [x] Inline Table

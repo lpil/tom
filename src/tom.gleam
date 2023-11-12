@@ -161,6 +161,7 @@ fn parse_value(input) -> Parsed(Toml) {
     ["f", "a", "l", "s", "e", ..input] -> Ok(#(Bool(False), input))
 
     ["[", ..input] -> parse_array(input, [])
+    ["{", ..input] -> parse_inline_table(input, map.new())
 
     ["+", ..input] -> parse_number(input, 0, Positive)
     ["-", ..input] -> parse_number(input, 0, Negative)
@@ -224,11 +225,13 @@ fn parse_key_bare(input: Tokens, name: String) -> Parsed(String) {
     ["=", ..] if name != "" -> Ok(#(name, input))
     [".", ..] if name != "" -> Ok(#(name, input))
     ["]", ..] if name != "" -> Ok(#(name, input))
+    [",", ..] if name != "" -> Error(Unexpected(",", "="))
     ["\n", ..] if name != "" -> Error(Unexpected("\n", "="))
     ["\r\n", ..] if name != "" -> Error(Unexpected("\r\n", "="))
     ["\n", ..] -> Error(Unexpected("\n", "key"))
     ["\r\n", ..] -> Error(Unexpected("\r\n", "key"))
     ["]", ..] -> Error(Unexpected("]", "key"))
+    [",", ..] -> Error(Unexpected(",", "key"))
     [g, ..input] -> parse_key_bare(input, name <> g)
     [] -> Error(Unexpected("EOF", "key"))
   }
@@ -278,6 +281,48 @@ fn expect(
     [g, ..input] if g == expected -> next(input)
     [g, ..] -> Error(Unexpected(g, expected))
     [] -> Error(Unexpected("EOF", expected))
+  }
+}
+
+fn parse_inline_table(
+  input: Tokens,
+  properties: Map(String, Toml),
+) -> Parsed(Toml) {
+  let input = skip_whitespace(input)
+  case input {
+    ["}", ..input] -> Ok(#(Table(properties), input))
+    _ ->
+      case parse_inline_table_property(input, properties) {
+        Ok(#(properties, input)) -> {
+          let input = skip_whitespace(input)
+          case input {
+            ["}", ..input] -> Ok(#(Table(properties), input))
+            [",", ..input] -> {
+              let input = skip_whitespace(input)
+              parse_inline_table(input, properties)
+            }
+            [g, ..] -> Error(Unexpected(g, "}"))
+            [] -> Error(Unexpected("EOF", "}"))
+          }
+        }
+        Error(e) -> Error(e)
+      }
+  }
+}
+
+fn parse_inline_table_property(
+  input: Tokens,
+  properties: Map(String, Toml),
+) -> Parsed(Map(String, Toml)) {
+  let input = skip_whitespace(input)
+  use key, input <- do(parse_key(input, []))
+  let input = skip_line_whitespace(input)
+  use input <- expect(input, "=")
+  let input = skip_line_whitespace(input)
+  use value, input <- do(parse_value(input))
+  case insert(properties, key, value) {
+    Ok(properties) -> Ok(#(properties, input))
+    Error(e) -> Error(e)
   }
 }
 
