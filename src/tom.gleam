@@ -6,6 +6,7 @@ pub type Toml {
   Int(Int)
   Float(Float)
   Bool(Bool)
+  String(String)
   Date(String)
   Time(String)
   DateTime(String)
@@ -78,6 +79,8 @@ fn parse_value(input) -> Parsed(Toml) {
     ["t", "r", "u", "e", ..input] -> Ok(#(Bool(True), input))
     ["f", "a", "l", "s", "e", ..input] -> Ok(#(Bool(False), input))
 
+    ["+", ..input] -> parse_number(input, 0, Positive)
+    ["-", ..input] -> parse_number(input, 0, Negative)
     ["0", ..]
     | ["1", ..]
     | ["2", ..]
@@ -87,7 +90,9 @@ fn parse_value(input) -> Parsed(Toml) {
     | ["6", ..]
     | ["7", ..]
     | ["8", ..]
-    | ["9", ..] -> parse_number(input, 0)
+    | ["9", ..] -> parse_number(input, 0, Positive)
+
+    ["\"", ..input] -> parse_string(input, "")
 
     [g, ..] -> Error(Unexpected(g, "value"))
     [] -> Error(Unexpected("EOF", "value"))
@@ -175,28 +180,46 @@ fn expect(
   }
 }
 
-fn parse_number(input: Tokens, number: Int) -> Parsed(Toml) {
+type Sign {
+  Positive
+  Negative
+}
+
+fn parse_number(input: Tokens, number: Int, sign: Sign) -> Parsed(Toml) {
   case input {
-    // // A dot, the number is a float
-    // [".", ..rest] if mode == ParseInt ->
-    //   parse_number(rest, number <> ".", ParseFloat, start)
-    // "e-" <> rest if mode == ParseFloat ->
-    //   parse_number(rest, number <> "e-", ParseFloatExponent, start)
-    // "e" <> rest if mode == ParseFloat ->
-    //   parse_number(rest, number <> "e", ParseFloatExponent, start)
-    ["_", ..input] -> parse_number(input, number)
-    ["0", ..input] -> parse_number(input, number * 10 + 0)
-    ["1", ..input] -> parse_number(input, number * 10 + 1)
-    ["2", ..input] -> parse_number(input, number * 10 + 2)
-    ["3", ..input] -> parse_number(input, number * 10 + 3)
-    ["4", ..input] -> parse_number(input, number * 10 + 4)
-    ["5", ..input] -> parse_number(input, number * 10 + 5)
-    ["6", ..input] -> parse_number(input, number * 10 + 6)
-    ["7", ..input] -> parse_number(input, number * 10 + 7)
-    ["8", ..input] -> parse_number(input, number * 10 + 8)
-    ["9", ..input] -> parse_number(input, number * 10 + 9)
+    ["_", ..input] -> parse_number(input, number, sign)
+    ["0", ..input] -> parse_number(input, number * 10 + 0, sign)
+    ["1", ..input] -> parse_number(input, number * 10 + 1, sign)
+    ["2", ..input] -> parse_number(input, number * 10 + 2, sign)
+    ["3", ..input] -> parse_number(input, number * 10 + 3, sign)
+    ["4", ..input] -> parse_number(input, number * 10 + 4, sign)
+    ["5", ..input] -> parse_number(input, number * 10 + 5, sign)
+    ["6", ..input] -> parse_number(input, number * 10 + 6, sign)
+    ["7", ..input] -> parse_number(input, number * 10 + 7, sign)
+    ["8", ..input] -> parse_number(input, number * 10 + 8, sign)
+    ["9", ..input] -> parse_number(input, number * 10 + 9, sign)
 
     // Anything else and the number is terminated
-    input -> Ok(#(Int(number), input))
+    input -> {
+      let number = case sign {
+        Positive -> number
+        Negative -> -number
+      }
+      Ok(#(Int(number), input))
+    }
+  }
+}
+
+fn parse_string(input: Tokens, string: String) -> Parsed(Toml) {
+  case input {
+    ["\"", ..input] -> Ok(#(String(string), input))
+    ["\\", "t", ..input] -> parse_string(input, string <> "\t")
+    ["\\", "n", ..input] -> parse_string(input, string <> "\n")
+    ["\\", "r", ..input] -> parse_string(input, string <> "\r")
+    ["\\", "\"", ..input] -> parse_string(input, string <> "\"")
+    ["\\", "\\", ..input] -> parse_string(input, string <> "\\")
+    // ["\\", "u", ..input] -> parse_string_unicode(input, string)
+    [g, ..input] -> parse_string(input, string <> g)
+    [] -> Error(Unexpected("EOF", "\""))
   }
 }

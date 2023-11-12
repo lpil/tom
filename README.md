@@ -28,9 +28,21 @@ and its documentation can be found at <https://hexdocs.pm/tom>.
 - [x] Single quoted key
 - [ ] Multi-segment key
 - [ ] Mixed multi-segment key
-- [ ] String
-- [ ] Positive integer operator
-- [ ] Negative integer operator
+- [x] String
+- [ ] Multi-line string
+- [ ] String \b escape sequence.
+- [x] String \t escape sequence.
+- [x] String \n escape sequence.
+- [ ] String \f escape sequence.
+- [x] String \r escape sequence.
+- [ ] String \e escape sequence.
+- [x] String \" escape sequence.
+- [x] String \\ escape sequence.
+- [ ] String \xHH escape sequence.
+- [ ] String \uHHHH escape sequence.
+- [ ] String \UHHHHHHHH escape sequence.
+- [x] Positive integer operator
+- [x] Negative integer operator
 - [x] Decimal integer
 - [x] Decimal integer with underscores
 - [ ] Hex integer

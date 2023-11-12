@@ -66,16 +66,72 @@ pub fn parse_unicode_key_test() {
   |> should.equal(Ok(expected))
 }
 
-pub fn parse_int_0_test() {
+pub fn parse_int_test() {
   let expected = map.from_list([#("it", tom.Int(1))])
   "it = 1\n"
   |> tom.parse
   |> should.equal(Ok(expected))
 }
 
-pub fn parse_int_1_test() {
+pub fn parse_int_underscored_test() {
   let expected = map.from_list([#("it", tom.Int(1_000_009))])
   "it = 1_000_0__0_9\n"
+  |> tom.parse
+  |> should.equal(Ok(expected))
+}
+
+pub fn parse_int_positive_test() {
+  let expected = map.from_list([#("it", tom.Int(234))])
+  "it = +234\n"
+  |> tom.parse
+  |> should.equal(Ok(expected))
+}
+
+pub fn parse_int_negative_test() {
+  let expected = map.from_list([#("it", tom.Int(-234))])
+  "it = -234\n"
+  |> tom.parse
+  |> should.equal(Ok(expected))
+}
+
+pub fn parse_string_test() {
+  let expected = map.from_list([#("hello", tom.String("Joe"))])
+  "hello = \"Joe\"\n"
+  |> tom.parse
+  |> should.equal(Ok(expected))
+}
+
+pub fn parse_string_escaped_quote_test() {
+  let expected = map.from_list([#("hello", tom.String("\""))])
+  "hello = \"\\\"\"\n"
+  |> tom.parse
+  |> should.equal(Ok(expected))
+}
+
+pub fn parse_string_tab_test() {
+  let expected = map.from_list([#("hello", tom.String("\t"))])
+  "hello = \"\\t\"\n"
+  |> tom.parse
+  |> should.equal(Ok(expected))
+}
+
+pub fn parse_string_newline_test() {
+  let expected = map.from_list([#("hello", tom.String("\n"))])
+  "hello = \"\\n\"\n"
+  |> tom.parse
+  |> should.equal(Ok(expected))
+}
+
+pub fn parse_string_linefeed_test() {
+  let expected = map.from_list([#("hello", tom.String("\r"))])
+  "hello = \"\\r\"\n"
+  |> tom.parse
+  |> should.equal(Ok(expected))
+}
+
+pub fn parse_escaped_slash_test() {
+  let expected = map.from_list([#("hello", tom.String("\\"))])
+  "hello = \"\\\\\"\n"
   |> tom.parse
   |> should.equal(Ok(expected))
 }
