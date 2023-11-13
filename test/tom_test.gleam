@@ -625,3 +625,38 @@ pub fn parse_octal_underscores_test() {
   |> tom.parse
   |> should.equal(Ok(expected))
 }
+
+pub fn parse_hex_test() {
+  let expected = map.from_list([#("a", tom.Int(0xdeadbeef))])
+  "a = 0xdeadbeef\n"
+  |> tom.parse
+  |> should.equal(Ok(expected))
+}
+
+pub fn parse_hex_positive_test() {
+  let expected = map.from_list([#("a", tom.Int(0xdeadbeef))])
+  "a = +0xdeadbeef\n"
+  |> tom.parse
+  |> should.equal(Ok(expected))
+}
+
+pub fn parse_hex_negative_test() {
+  let expected = map.from_list([#("a", tom.Int(0xdeadbeef * -1))])
+  "a = -0xdeadbeef\n"
+  |> tom.parse
+  |> should.equal(Ok(expected))
+}
+
+pub fn parse_hex_underscores_test() {
+  let expected = map.from_list([#("a", tom.Int(0xdeadbeef))])
+  "a = 0xd_e_a_d__b___e____e______f\n"
+  |> tom.parse
+  |> should.equal(Ok(expected))
+}
+
+pub fn parse_hex_uppercase_test() {
+  let expected = map.from_list([#("a", tom.Int(0xdeadbeef))])
+  "a = +0xDEADBEEF\n"
+  |> tom.parse
+  |> should.equal(Ok(expected))
+}

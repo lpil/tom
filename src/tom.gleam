@@ -560,6 +560,10 @@ fn parse_value(input) -> Parsed(Toml) {
     ["[", ..input] -> parse_array(input, [])
     ["{", ..input] -> parse_inline_table(input, map.new())
 
+    ["0", "x", ..input] -> parse_hex(input, 0, Positive)
+    ["+", "0", "x", ..input] -> parse_hex(input, 0, Positive)
+    ["-", "0", "x", ..input] -> parse_hex(input, 0, Negative)
+
     ["0", "o", ..input] -> parse_octal(input, 0, Positive)
     ["+", "0", "o", ..input] -> parse_octal(input, 0, Positive)
     ["-", "0", "o", ..input] -> parse_octal(input, 0, Negative)
@@ -752,6 +756,43 @@ fn parse_array(input: Tokens, elements: List(Toml)) -> Parsed(Toml) {
         [g, ..] -> Error(Unexpected(g, "]"))
         [] -> Error(Unexpected("EOF", "]"))
       }
+    }
+  }
+}
+
+fn parse_hex(input: Tokens, number: Int, sign: Sign) -> Parsed(Toml) {
+  case input {
+    ["_", ..input] -> parse_hex(input, number, sign)
+    ["0", ..input] -> parse_hex(input, number * 16 + 0, sign)
+    ["1", ..input] -> parse_hex(input, number * 16 + 1, sign)
+    ["2", ..input] -> parse_hex(input, number * 16 + 2, sign)
+    ["3", ..input] -> parse_hex(input, number * 16 + 3, sign)
+    ["4", ..input] -> parse_hex(input, number * 16 + 4, sign)
+    ["5", ..input] -> parse_hex(input, number * 16 + 5, sign)
+    ["6", ..input] -> parse_hex(input, number * 16 + 6, sign)
+    ["7", ..input] -> parse_hex(input, number * 16 + 7, sign)
+    ["8", ..input] -> parse_hex(input, number * 16 + 8, sign)
+    ["9", ..input] -> parse_hex(input, number * 16 + 9, sign)
+    ["a", ..input] -> parse_hex(input, number * 16 + 10, sign)
+    ["b", ..input] -> parse_hex(input, number * 16 + 11, sign)
+    ["c", ..input] -> parse_hex(input, number * 16 + 12, sign)
+    ["d", ..input] -> parse_hex(input, number * 16 + 13, sign)
+    ["e", ..input] -> parse_hex(input, number * 16 + 14, sign)
+    ["f", ..input] -> parse_hex(input, number * 16 + 15, sign)
+    ["A", ..input] -> parse_hex(input, number * 16 + 10, sign)
+    ["B", ..input] -> parse_hex(input, number * 16 + 11, sign)
+    ["C", ..input] -> parse_hex(input, number * 16 + 12, sign)
+    ["D", ..input] -> parse_hex(input, number * 16 + 13, sign)
+    ["E", ..input] -> parse_hex(input, number * 16 + 14, sign)
+    ["F", ..input] -> parse_hex(input, number * 16 + 15, sign)
+
+    // Anything else and the number is terminated
+    input -> {
+      let number = case sign {
+        Positive -> number
+        Negative -> -number
+      }
+      Ok(#(Int(number), input))
     }
   }
 }

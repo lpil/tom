@@ -65,9 +65,9 @@ Further documentation can be found at <https://hexdocs.pm/tom>.
 - [x] Negative number operator
 - [x] Decimal integer
 - [x] Decimal integer with underscores
-- [ ] Hex integer
-- [ ] Octal integer
-- [ ] Binary integer
+- [x] Hex integer
+- [x] Octal integer
+- [x] Binary integer
 - [x] Float
 - [x] Infinity
 - [x] Negative Infinity
