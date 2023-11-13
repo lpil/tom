@@ -73,7 +73,7 @@ Further documentation can be found at <https://hexdocs.pm/tom>.
 - [x] Negative Infinity
 - [x] NaN
 - [x] Negative NaN
-- [ ] Float with exponent
+- [x] Float with exponent
 - [x] Boolean
 - [ ] Offset Date-Time
 - [ ] Local Date-Time

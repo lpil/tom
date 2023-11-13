@@ -26,6 +26,7 @@
 
 import gleam/int
 import gleam/list
+import gleam/float
 import gleam/string
 import gleam/result
 import gleam/map.{type Map}
@@ -853,6 +854,19 @@ fn parse_number(input: Tokens, number: Int, sign: Sign) -> Parsed(Toml) {
 
     [".", ..input] -> parse_float(input, int.to_float(number), sign, 0.1)
 
+    ["e", "+", ..input] ->
+      parse_exponent(input, int.to_float(number), sign, 0, Positive)
+    ["e", "-", ..input] ->
+      parse_exponent(input, int.to_float(number), sign, 0, Negative)
+    ["e", ..input] ->
+      parse_exponent(input, int.to_float(number), sign, 0, Positive)
+    ["E", "+", ..input] ->
+      parse_exponent(input, int.to_float(number), sign, 0, Positive)
+    ["E", "-", ..input] ->
+      parse_exponent(input, int.to_float(number), sign, 0, Negative)
+    ["E", ..input] ->
+      parse_exponent(input, int.to_float(number), sign, 0, Positive)
+
     // Anything else and the number is terminated
     input -> {
       let number = case sign {
@@ -860,6 +874,46 @@ fn parse_number(input: Tokens, number: Int, sign: Sign) -> Parsed(Toml) {
         Negative -> -number
       }
       Ok(#(Int(number), input))
+    }
+  }
+}
+
+fn parse_exponent(
+  input: Tokens,
+  n: Float,
+  n_sign: Sign,
+  ex: Int,
+  ex_sign: Sign,
+) -> Parsed(Toml) {
+  case input {
+    ["_", ..input] -> parse_exponent(input, n, n_sign, ex, ex_sign)
+    ["0", ..input] -> parse_exponent(input, n, n_sign, ex * 10, ex_sign)
+    ["1", ..input] -> parse_exponent(input, n, n_sign, ex * 10 + 1, ex_sign)
+    ["2", ..input] -> parse_exponent(input, n, n_sign, ex * 10 + 2, ex_sign)
+    ["3", ..input] -> parse_exponent(input, n, n_sign, ex * 10 + 3, ex_sign)
+    ["4", ..input] -> parse_exponent(input, n, n_sign, ex * 10 + 4, ex_sign)
+    ["5", ..input] -> parse_exponent(input, n, n_sign, ex * 10 + 5, ex_sign)
+    ["6", ..input] -> parse_exponent(input, n, n_sign, ex * 10 + 6, ex_sign)
+    ["7", ..input] -> parse_exponent(input, n, n_sign, ex * 10 + 7, ex_sign)
+    ["8", ..input] -> parse_exponent(input, n, n_sign, ex * 10 + 8, ex_sign)
+    ["9", ..input] -> parse_exponent(input, n, n_sign, ex * 10 + 9, ex_sign)
+
+    // Anything else and the number is terminated
+    input -> {
+      let number = case n_sign {
+        Positive -> n
+        Negative -> n *. -1.0
+      }
+      let exponent =
+        int.to_float(case ex_sign {
+          Positive -> ex
+          Negative -> -ex
+        })
+      let multiplier = case float.power(10.0, exponent) {
+        Ok(multiplier) -> multiplier
+        Error(_) -> 1.0
+      }
+      Ok(#(Float(number *. multiplier), input))
     }
   }
 }
@@ -891,6 +945,13 @@ fn parse_float(
       parse_float(input, number +. 8.0 *. unit, sign, unit *. 0.1)
     ["9", ..input] ->
       parse_float(input, number +. 9.0 *. unit, sign, unit *. 0.1)
+
+    ["e", "+", ..input] -> parse_exponent(input, number, sign, 0, Positive)
+    ["e", "-", ..input] -> parse_exponent(input, number, sign, 0, Negative)
+    ["e", ..input] -> parse_exponent(input, number, sign, 0, Positive)
+    ["E", "+", ..input] -> parse_exponent(input, number, sign, 0, Positive)
+    ["E", "-", ..input] -> parse_exponent(input, number, sign, 0, Negative)
+    ["E", ..input] -> parse_exponent(input, number, sign, 0, Positive)
 
     // Anything else and the number is terminated
     input -> {

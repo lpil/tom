@@ -660,3 +660,52 @@ pub fn parse_hex_uppercase_test() {
   |> tom.parse
   |> should.equal(Ok(expected))
 }
+
+pub fn parse_float_exponent_test() {
+  let expected = map.from_list([#("a", tom.Float(1.0e6))])
+  "a = 1e6\n"
+  |> tom.parse
+  |> should.equal(Ok(expected))
+}
+
+pub fn parse_float_exponent_uppercase_test() {
+  let expected = map.from_list([#("a", tom.Float(1.0e6))])
+  "a = 1E6\n"
+  |> tom.parse
+  |> should.equal(Ok(expected))
+}
+
+pub fn parse_float_exponent_postive_test() {
+  let expected = map.from_list([#("a", tom.Float(5.0e22))])
+  "a = 5e+22\n"
+  |> tom.parse
+  |> should.equal(Ok(expected))
+}
+
+pub fn parse_float_exponent_negative_test() {
+  let expected = map.from_list([#("a", tom.Float(-2.0e-22))])
+  "a = -2e-22\n"
+  |> tom.parse
+  |> should.equal(Ok(expected))
+}
+
+pub fn parse_float_decimal_and_exponent_test() {
+  let expected = map.from_list([#("a", tom.Float(6.626e25))])
+  "a = 6.626e25\n"
+  |> tom.parse
+  |> should.equal(Ok(expected))
+}
+
+pub fn parse_float_decimal_and_exponent_positive_test() {
+  let expected = map.from_list([#("a", tom.Float(6.626e25))])
+  "a = 6.626e+25\n"
+  |> tom.parse
+  |> should.equal(Ok(expected))
+}
+
+pub fn parse_float_decimal_and_exponent_negative_test() {
+  let expected = map.from_list([#("a", tom.Float(6.626e-25))])
+  "a = 6.626e-25\n"
+  |> tom.parse
+  |> should.equal(Ok(expected))
+}
