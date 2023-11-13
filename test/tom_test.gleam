@@ -590,3 +590,38 @@ pub fn parse_binary_negative_test() {
   |> tom.parse
   |> should.equal(Ok(expected))
 }
+
+pub fn parse_binary_underscores_test() {
+  let expected = map.from_list([#("a", tom.Int(0b101010))])
+  "a = 0b1__010___1_0\n"
+  |> tom.parse
+  |> should.equal(Ok(expected))
+}
+
+pub fn parse_octal_test() {
+  let expected = map.from_list([#("a", tom.Int(0o1234567))])
+  "a = 0o1234567\n"
+  |> tom.parse
+  |> should.equal(Ok(expected))
+}
+
+pub fn parse_octal_positive_test() {
+  let expected = map.from_list([#("a", tom.Int(0o1234567))])
+  "a = +0o1234567\n"
+  |> tom.parse
+  |> should.equal(Ok(expected))
+}
+
+pub fn parse_octal_negative_test() {
+  let expected = map.from_list([#("a", tom.Int(0o1234567 * -1))])
+  "a = -0o1234567\n"
+  |> tom.parse
+  |> should.equal(Ok(expected))
+}
+
+pub fn parse_octal_underscores_test() {
+  let expected = map.from_list([#("a", tom.Int(0o1234567))])
+  "a = 0o1_23_45__6_7\n"
+  |> tom.parse
+  |> should.equal(Ok(expected))
+}

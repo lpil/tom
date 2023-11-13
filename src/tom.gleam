@@ -560,6 +560,10 @@ fn parse_value(input) -> Parsed(Toml) {
     ["[", ..input] -> parse_array(input, [])
     ["{", ..input] -> parse_inline_table(input, map.new())
 
+    ["0", "o", ..input] -> parse_octal(input, 0, Positive)
+    ["+", "0", "o", ..input] -> parse_octal(input, 0, Positive)
+    ["-", "0", "o", ..input] -> parse_octal(input, 0, Negative)
+
     ["0", "b", ..input] -> parse_binary(input, 0, Positive)
     ["+", "0", "b", ..input] -> parse_binary(input, 0, Positive)
     ["-", "0", "b", ..input] -> parse_binary(input, 0, Negative)
@@ -748,6 +752,29 @@ fn parse_array(input: Tokens, elements: List(Toml)) -> Parsed(Toml) {
         [g, ..] -> Error(Unexpected(g, "]"))
         [] -> Error(Unexpected("EOF", "]"))
       }
+    }
+  }
+}
+
+fn parse_octal(input: Tokens, number: Int, sign: Sign) -> Parsed(Toml) {
+  case input {
+    ["_", ..input] -> parse_octal(input, number, sign)
+    ["0", ..input] -> parse_octal(input, number * 8 + 0, sign)
+    ["1", ..input] -> parse_octal(input, number * 8 + 1, sign)
+    ["2", ..input] -> parse_octal(input, number * 8 + 2, sign)
+    ["3", ..input] -> parse_octal(input, number * 8 + 3, sign)
+    ["4", ..input] -> parse_octal(input, number * 8 + 4, sign)
+    ["5", ..input] -> parse_octal(input, number * 8 + 5, sign)
+    ["6", ..input] -> parse_octal(input, number * 8 + 6, sign)
+    ["7", ..input] -> parse_octal(input, number * 8 + 7, sign)
+
+    // Anything else and the number is terminated
+    input -> {
+      let number = case sign {
+        Positive -> number
+        Negative -> -number
+      }
+      Ok(#(Int(number), input))
     }
   }
 }
