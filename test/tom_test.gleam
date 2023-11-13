@@ -165,6 +165,21 @@ pub fn parse_multi_segment_key_test() {
   |> should.equal(Ok(expected))
 }
 
+pub fn parse_multi_segment_key_with_spaeces_test() {
+  let expected =
+    map.from_list([
+      #(
+        "one",
+        tom.Table(map.from_list([
+          #("two", tom.Table(map.from_list([#("three", tom.Bool(True))]))),
+        ])),
+      ),
+    ])
+  "one  . two   .   three = true\n"
+  |> tom.parse
+  |> should.equal(Ok(expected))
+}
+
 pub fn parse_multi_segment_key_quotes_test() {
   let expected =
     map.from_list([
@@ -541,6 +556,37 @@ pub fn parse_positive_infinity_test() {
 pub fn parse_negative_infinity_test() {
   let expected = map.from_list([#("a", tom.Infinity(tom.Negative))])
   "a = -inf\n"
+  |> tom.parse
+  |> should.equal(Ok(expected))
+}
+
+pub fn parse_write_to_key_that_does_not_exist_test() {
+  let expected =
+    map.from_list([
+      #("apple", tom.Table(map.from_list([#("smooth", tom.Bool(True))]))),
+    ])
+  "apple.smooth = true\n"
+  |> tom.parse
+  |> should.equal(Ok(expected))
+}
+
+pub fn parse_binary_test() {
+  let expected = map.from_list([#("a", tom.Int(0b101010))])
+  "a = 0b101010\n"
+  |> tom.parse
+  |> should.equal(Ok(expected))
+}
+
+pub fn parse_binary_positive_test() {
+  let expected = map.from_list([#("a", tom.Int(0b101010))])
+  "a = +0b101010\n"
+  |> tom.parse
+  |> should.equal(Ok(expected))
+}
+
+pub fn parse_binary_negative_test() {
+  let expected = map.from_list([#("a", tom.Int(0b101010 * -1))])
+  "a = -0b101010\n"
   |> tom.parse
   |> should.equal(Ok(expected))
 }

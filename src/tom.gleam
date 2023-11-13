@@ -560,6 +560,10 @@ fn parse_value(input) -> Parsed(Toml) {
     ["[", ..input] -> parse_array(input, [])
     ["{", ..input] -> parse_inline_table(input, map.new())
 
+    ["0", "b", ..input] -> parse_binary(input, 0, Positive)
+    ["+", "0", "b", ..input] -> parse_binary(input, 0, Positive)
+    ["-", "0", "b", ..input] -> parse_binary(input, 0, Negative)
+
     ["+", ..input] -> parse_number(input, 0, Positive)
     ["-", ..input] -> parse_number(input, 0, Negative)
     ["0", ..]
@@ -744,6 +748,23 @@ fn parse_array(input: Tokens, elements: List(Toml)) -> Parsed(Toml) {
         [g, ..] -> Error(Unexpected(g, "]"))
         [] -> Error(Unexpected("EOF", "]"))
       }
+    }
+  }
+}
+
+fn parse_binary(input: Tokens, number: Int, sign: Sign) -> Parsed(Toml) {
+  case input {
+    ["_", ..input] -> parse_binary(input, number, sign)
+    ["0", ..input] -> parse_binary(input, number * 2 + 0, sign)
+    ["1", ..input] -> parse_binary(input, number * 2 + 1, sign)
+
+    // Anything else and the number is terminated
+    input -> {
+      let number = case sign {
+        Positive -> number
+        Negative -> -number
+      }
+      Ok(#(Int(number), input))
     }
   }
 }
