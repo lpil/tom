@@ -502,3 +502,45 @@ The quick brown \\\r\n
   |> tom.parse
   |> should.equal(Ok(expected))
 }
+
+pub fn parse_nan_test() {
+  let expected = map.from_list([#("a", tom.Nan(tom.Positive))])
+  "a = nan\n"
+  |> tom.parse
+  |> should.equal(Ok(expected))
+}
+
+pub fn parse_positive_nan_test() {
+  let expected = map.from_list([#("a", tom.Nan(tom.Positive))])
+  "a = +nan\n"
+  |> tom.parse
+  |> should.equal(Ok(expected))
+}
+
+pub fn parse_negative_nan_test() {
+  let expected = map.from_list([#("a", tom.Nan(tom.Negative))])
+  "a = -nan\n"
+  |> tom.parse
+  |> should.equal(Ok(expected))
+}
+
+pub fn parse_infinity_test() {
+  let expected = map.from_list([#("a", tom.Infinity(tom.Positive))])
+  "a = inf\n"
+  |> tom.parse
+  |> should.equal(Ok(expected))
+}
+
+pub fn parse_positive_infinity_test() {
+  let expected = map.from_list([#("a", tom.Infinity(tom.Positive))])
+  "a = +inf\n"
+  |> tom.parse
+  |> should.equal(Ok(expected))
+}
+
+pub fn parse_negative_infinity_test() {
+  let expected = map.from_list([#("a", tom.Infinity(tom.Negative))])
+  "a = -inf\n"
+  |> tom.parse
+  |> should.equal(Ok(expected))
+}

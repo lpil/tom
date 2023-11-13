@@ -30,9 +30,16 @@ import gleam/string
 import gleam/result
 import gleam/map.{type Map}
 
+/// A TOML document.
 pub type Toml {
   Int(Int)
   Float(Float)
+  /// Infinity is a valid number in TOML but Gleam does not support it, so this
+  /// variant represents the infinity values.
+  Infinity(Sign)
+  /// NaN is a valid number in TOML but Gleam does not support it, so this
+  /// variant represents the NaN values.
+  Nan(Sign)
   Bool(Bool)
   String(String)
   Date(String)
@@ -44,8 +51,39 @@ pub type Toml {
   InlineTable(Map(String, Toml))
 }
 
+pub type Sign {
+  Positive
+  Negative
+}
+
+/// An error that can occur when parsing a TOML document.
+pub type ParseError {
+  /// An unexpected character was encountered when parsing the document.
+  Unexpected(got: String, expected: String)
+  /// More than one items have the same key in the document.
+  KeyAlreadyInUse(key: List(String))
+}
+
+type Tokens =
+  List(String)
+
+type Parsed(a) =
+  Result(#(a, Tokens), ParseError)
+
+/// A number of any kind, returned by the `get_number` function.
+pub type Number {
+  NumberInt(Int)
+  NumberFloat(Float)
+  NumberInfinity(Sign)
+  NumberNan(Sign)
+}
+
+/// An error that can occur when retrieving a value from a TOML document with
+/// one of the `get_*` functions.
 pub type GetError {
+  /// There was no value at the given key.
   NotFound(key: List(String))
+  /// The value at the given key was not of the expected type.
   WrongType(key: List(String), expected: String, got: String)
 }
 
@@ -274,10 +312,40 @@ pub fn get_table(
   }
 }
 
+// TODO: test
+/// Get a number of any kind from a TOML document.
+/// This could be an int, a float, a NaN, or an infinity.
+///
+/// ## Examples
+/// 
+/// ```gleam
+/// let assert Ok(parsed) = parse("a.b.c = { d = inf }")
+/// get_number(parsed, ["a", "b", "c"])
+/// // -> Ok(NumberInfinity(Positive)))
+/// ```
+///
+pub fn get_number(
+  toml: Map(String, Toml),
+  key: List(String),
+) -> Result(Number, GetError) {
+  case get(toml, key) {
+    Ok(Int(x)) -> Ok(NumberInt(x))
+    Ok(Float(x)) -> Ok(NumberFloat(x))
+    Ok(Nan(x)) -> Ok(NumberNan(x))
+    Ok(Infinity(x)) -> Ok(NumberInfinity(x))
+    Ok(other) -> Error(WrongType(key, "Number", classify(other)))
+    Error(e) -> Error(e)
+  }
+}
+
 fn classify(toml: Toml) -> String {
   case toml {
     Int(_) -> "Int"
     Float(_) -> "Float"
+    Nan(Positive) -> "NaN"
+    Nan(Negative) -> "Negative NaN"
+    Infinity(Positive) -> "Infinity"
+    Infinity(Negative) -> "Negative Infinity"
     Bool(_) -> "Bool"
     String(_) -> "String"
     Date(_) -> "Date"
@@ -298,17 +366,6 @@ fn push_key(result: Result(t, GetError), key: String) -> Result(t, GetError) {
       Error(WrongType([key, ..path], expected, got))
   }
 }
-
-pub type ParseError {
-  Unexpected(got: String, expected: String)
-  KeyAlreadyInUse(List(String))
-}
-
-type Tokens =
-  List(String)
-
-type Parsed(a) =
-  Result(#(a, Tokens), ParseError)
 
 pub fn parse(input: String) -> Result(Map(String, Toml), ParseError) {
   let input = string.to_graphemes(input)
@@ -491,6 +548,14 @@ fn parse_value(input) -> Parsed(Toml) {
   case input {
     ["t", "r", "u", "e", ..input] -> Ok(#(Bool(True), input))
     ["f", "a", "l", "s", "e", ..input] -> Ok(#(Bool(False), input))
+
+    ["n", "a", "n", ..input] -> Ok(#(Nan(Positive), input))
+    ["+", "n", "a", "n", ..input] -> Ok(#(Nan(Positive), input))
+    ["-", "n", "a", "n", ..input] -> Ok(#(Nan(Negative), input))
+
+    ["i", "n", "f", ..input] -> Ok(#(Infinity(Positive), input))
+    ["+", "i", "n", "f", ..input] -> Ok(#(Infinity(Positive), input))
+    ["-", "i", "n", "f", ..input] -> Ok(#(Infinity(Negative), input))
 
     ["[", ..input] -> parse_array(input, [])
     ["{", ..input] -> parse_inline_table(input, map.new())
@@ -681,11 +746,6 @@ fn parse_array(input: Tokens, elements: List(Toml)) -> Parsed(Toml) {
       }
     }
   }
-}
-
-type Sign {
-  Positive
-  Negative
 }
 
 fn parse_number(input: Tokens, number: Int, sign: Sign) -> Parsed(Toml) {

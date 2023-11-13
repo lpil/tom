@@ -69,6 +69,10 @@ Further documentation can be found at <https://hexdocs.pm/tom>.
 - [ ] Octal integer
 - [ ] Binary integer
 - [x] Float
+- [x] Infinity
+- [x] Negative Infinity
+- [x] NaN
+- [x] Negative NaN
 - [ ] Float with exponent
 - [x] Boolean
 - [ ] Offset Date-Time
