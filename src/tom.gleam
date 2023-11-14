@@ -1074,10 +1074,35 @@ fn parse_time_minute(input: Tokens, hour: Int) -> Parsed(Toml) {
   case input {
     [":", ..input] -> {
       use seconds, input <- do(parse_number_under_60(input, "seconds"))
-      Ok(#(Time(TimeValue(hour, minutes, seconds, 0)), input))
+      let time = TimeValue(hour, minutes, seconds, 0)
+      case input {
+        [".", ..input] -> parse_time_ms(input, time, 0)
+        _ -> Ok(#(Time(time), input))
+      }
     }
 
     _ -> Ok(#(Time(TimeValue(hour, minutes, 0, 0)), input))
+  }
+}
+
+fn parse_time_ms(input: Tokens, time: Time, n: Int) -> Parsed(Toml) {
+  case input {
+    ["0", ..input] if n < 100_000 -> parse_time_ms(input, time, n * 10 + 0)
+    ["1", ..input] if n < 100_000 -> parse_time_ms(input, time, n * 10 + 1)
+    ["2", ..input] if n < 100_000 -> parse_time_ms(input, time, n * 10 + 2)
+    ["3", ..input] if n < 100_000 -> parse_time_ms(input, time, n * 10 + 3)
+    ["4", ..input] if n < 100_000 -> parse_time_ms(input, time, n * 10 + 4)
+    ["5", ..input] if n < 100_000 -> parse_time_ms(input, time, n * 10 + 5)
+    ["6", ..input] if n < 100_000 -> parse_time_ms(input, time, n * 10 + 6)
+    ["7", ..input] if n < 100_000 -> parse_time_ms(input, time, n * 10 + 7)
+    ["8", ..input] if n < 100_000 -> parse_time_ms(input, time, n * 10 + 8)
+    ["9", ..input] if n < 100_000 -> parse_time_ms(input, time, n * 10 + 9)
+
+    // Anything else and the number is terminated
+    _ -> {
+      let time = TimeValue(..time, millisecond: n)
+      Ok(#(Time(time), input))
+    }
   }
 }
 

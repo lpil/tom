@@ -78,6 +78,6 @@ Further documentation can be found at <https://hexdocs.pm/tom>.
 - [ ] Offset Date-Time
 - [ ] Local Date-Time
 - [x] Local Date
-- [ ] Local Time
+- [x] Local Time
 - [x] Array
 - [x] Inline Table

@@ -724,6 +724,22 @@ pub fn parse_time_test() {
   |> should.equal(Ok(expected))
 }
 
+pub fn parse_time_milliseconds_test() {
+  let expected =
+    map.from_list([#("a", tom.Time(tom.TimeValue(7, 32, 1, 999_999)))])
+  "a = 07:32:01.999999\n"
+  |> tom.parse
+  |> should.equal(Ok(expected))
+}
+
+pub fn parse_time_milliseconds_1_test() {
+  let expected =
+    map.from_list([#("a", tom.Time(tom.TimeValue(7, 32, 1, 09_179)))])
+  "a = 07:32:01.09179\n"
+  |> tom.parse
+  |> should.equal(Ok(expected))
+}
+
 pub fn parse_time_no_seconds_test() {
   let expected = map.from_list([#("a", tom.Time(tom.TimeValue(7, 32, 0, 0)))])
   "a = 07:32\n"
