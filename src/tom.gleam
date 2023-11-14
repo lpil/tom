@@ -29,6 +29,7 @@ import gleam/list
 import gleam/float
 import gleam/string
 import gleam/result
+import gleam/option.{type Option}
 import gleam/map.{type Map}
 
 /// A TOML document.
@@ -43,13 +44,25 @@ pub type Toml {
   Nan(Sign)
   Bool(Bool)
   String(String)
-  Date(String)
-  Time(String)
-  DateTime(String)
+  Date(Date)
+  Time(Time)
+  DateTime(DateTime)
   Array(List(Toml))
   ArrayOfTables(List(Map(String, Toml)))
   Table(Map(String, Toml))
   InlineTable(Map(String, Toml))
+}
+
+pub type DateTime {
+  DateTimeValue(date: Date, time: Time, offset: Option(Int))
+}
+
+pub type Date {
+  DateValue(year: Int, month: Int, day: Int)
+}
+
+pub type Time {
+  TimeValue(hour: Int, minute: Int, second: Int, millisecond: Int)
 }
 
 pub type Sign {
@@ -215,7 +228,7 @@ pub fn get_string(
 pub fn get_date(
   toml: Map(String, Toml),
   key: List(String),
-) -> Result(String, GetError) {
+) -> Result(Date, GetError) {
   case get(toml, key) {
     Ok(Date(i)) -> Ok(i)
     Ok(other) -> Error(WrongType(key, "Date", classify(other)))
@@ -237,7 +250,7 @@ pub fn get_date(
 pub fn get_time(
   toml: Map(String, Toml),
   key: List(String),
-) -> Result(String, GetError) {
+) -> Result(Time, GetError) {
   case get(toml, key) {
     Ok(Time(i)) -> Ok(i)
     Ok(other) -> Error(WrongType(key, "Time", classify(other)))
@@ -259,7 +272,7 @@ pub fn get_time(
 pub fn get_date_time(
   toml: Map(String, Toml),
   key: List(String),
-) -> Result(String, GetError) {
+) -> Result(DateTime, GetError) {
   case get(toml, key) {
     Ok(DateTime(i)) -> Ok(i)
     Ok(other) -> Error(WrongType(key, "DateTime", classify(other)))
@@ -852,6 +865,8 @@ fn parse_number(input: Tokens, number: Int, sign: Sign) -> Parsed(Toml) {
     ["8", ..input] -> parse_number(input, number * 10 + 8, sign)
     ["9", ..input] -> parse_number(input, number * 10 + 9, sign)
 
+    ["-", ..input] -> parse_date(input, number)
+
     [".", ..input] -> parse_float(input, int.to_float(number), sign, 0.1)
 
     ["e", "+", ..input] ->
@@ -1051,4 +1066,72 @@ fn reverse_arrays_of_tables_array(
       reverse_arrays_of_tables_array(rest, [first, ..acc])
     }
   }
+}
+
+fn parse_date(input: Tokens, year: Int) -> Parsed(Toml) {
+  case input {
+    ["0", "1", "-", ..input] -> parse_date_day(input, year, 1)
+    ["0", "2", "-", ..input] -> parse_date_day(input, year, 2)
+    ["0", "3", "-", ..input] -> parse_date_day(input, year, 3)
+    ["0", "4", "-", ..input] -> parse_date_day(input, year, 4)
+    ["0", "5", "-", ..input] -> parse_date_day(input, year, 5)
+    ["0", "6", "-", ..input] -> parse_date_day(input, year, 6)
+    ["0", "7", "-", ..input] -> parse_date_day(input, year, 7)
+    ["0", "8", "-", ..input] -> parse_date_day(input, year, 8)
+    ["0", "9", "-", ..input] -> parse_date_day(input, year, 9)
+    ["1", "0", "-", ..input] -> parse_date_day(input, year, 10)
+    ["1", "1", "-", ..input] -> parse_date_day(input, year, 11)
+    ["1", "2", "-", ..input] -> parse_date_day(input, year, 12)
+
+    [g, ..] -> Error(Unexpected(g, "date month"))
+    [] -> Error(Unexpected("EOF", "date month"))
+  }
+}
+
+fn parse_date_day(input: Tokens, year: Int, month: Int) -> Parsed(Toml) {
+  case input {
+    ["0", "1", ..input] -> parse_date_end(input, year, month, 1)
+    ["0", "2", ..input] -> parse_date_end(input, year, month, 2)
+    ["0", "3", ..input] -> parse_date_end(input, year, month, 3)
+    ["0", "4", ..input] -> parse_date_end(input, year, month, 4)
+    ["0", "5", ..input] -> parse_date_end(input, year, month, 5)
+    ["0", "6", ..input] -> parse_date_end(input, year, month, 6)
+    ["0", "7", ..input] -> parse_date_end(input, year, month, 7)
+    ["0", "8", ..input] -> parse_date_end(input, year, month, 8)
+    ["0", "9", ..input] -> parse_date_end(input, year, month, 9)
+    ["1", "0", ..input] -> parse_date_end(input, year, month, 10)
+    ["1", "1", ..input] -> parse_date_end(input, year, month, 11)
+    ["1", "2", ..input] -> parse_date_end(input, year, month, 12)
+    ["1", "3", ..input] -> parse_date_end(input, year, month, 13)
+    ["1", "4", ..input] -> parse_date_end(input, year, month, 14)
+    ["1", "5", ..input] -> parse_date_end(input, year, month, 15)
+    ["1", "6", ..input] -> parse_date_end(input, year, month, 16)
+    ["1", "7", ..input] -> parse_date_end(input, year, month, 17)
+    ["1", "8", ..input] -> parse_date_end(input, year, month, 18)
+    ["1", "9", ..input] -> parse_date_end(input, year, month, 19)
+    ["2", "0", ..input] -> parse_date_end(input, year, month, 20)
+    ["2", "1", ..input] -> parse_date_end(input, year, month, 21)
+    ["2", "2", ..input] -> parse_date_end(input, year, month, 22)
+    ["2", "3", ..input] -> parse_date_end(input, year, month, 23)
+    ["2", "4", ..input] -> parse_date_end(input, year, month, 24)
+    ["2", "5", ..input] -> parse_date_end(input, year, month, 25)
+    ["2", "6", ..input] -> parse_date_end(input, year, month, 26)
+    ["2", "7", ..input] -> parse_date_end(input, year, month, 27)
+    ["2", "8", ..input] -> parse_date_end(input, year, month, 28)
+    ["2", "9", ..input] -> parse_date_end(input, year, month, 29)
+    ["3", "0", ..input] -> parse_date_end(input, year, month, 30)
+    ["3", "1", ..input] -> parse_date_end(input, year, month, 31)
+
+    [g, ..] -> Error(Unexpected(g, "date day"))
+    [] -> Error(Unexpected("EOF", "date day"))
+  }
+}
+
+fn parse_date_end(
+  input: Tokens,
+  year: Int,
+  month: Int,
+  day: Int,
+) -> Parsed(Toml) {
+  Ok(#(Date(DateValue(year, month, day)), input))
 }

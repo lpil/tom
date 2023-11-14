@@ -1,4 +1,5 @@
 import tom
+import gleam/option
 import gleam/map
 import gleeunit
 import gleeunit/should
@@ -709,3 +710,26 @@ pub fn parse_float_decimal_and_exponent_negative_test() {
   |> tom.parse
   |> should.equal(Ok(expected))
 }
+
+pub fn parse_date_test() {
+  let expected = map.from_list([#("a", tom.Date(tom.DateValue(1979, 5, 27)))])
+  "a = 1979-05-27\n"
+  |> tom.parse
+  |> should.equal(Ok(expected))
+}
+// pub fn parse_offset_date_time_z_test() {
+//   let expected =
+//     map.from_list([
+//       #(
+//         "a",
+//         tom.DateTime(tom.DateTimeValue(
+//           tom.DateValue(1979, 5, 27),
+//           tom.TimeValue(7, 32, 0, 0),
+//           offset: option.Some(0),
+//         )),
+//       ),
+//     ])
+//   "a = 1979-05-27T07:32:00Z"
+//   |> tom.parse
+//   |> should.equal(Ok(expected))
+// }

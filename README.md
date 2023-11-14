@@ -77,7 +77,7 @@ Further documentation can be found at <https://hexdocs.pm/tom>.
 - [x] Boolean
 - [ ] Offset Date-Time
 - [ ] Local Date-Time
-- [ ] Local Date
+- [x] Local Date
 - [ ] Local Time
 - [x] Array
 - [x] Inline Table
