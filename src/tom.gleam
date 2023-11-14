@@ -866,6 +866,7 @@ fn parse_number(input: Tokens, number: Int, sign: Sign) -> Parsed(Toml) {
     ["9", ..input] -> parse_number(input, number * 10 + 9, sign)
 
     ["-", ..input] -> parse_date(input, number)
+    [":", ..input] if number < 24 -> parse_time_minute(input, number)
 
     [".", ..input] -> parse_float(input, int.to_float(number), sign, 0.1)
 
@@ -1065,6 +1066,81 @@ fn reverse_arrays_of_tables_array(
       let first = reverse_arrays_of_tables_table(first)
       reverse_arrays_of_tables_array(rest, [first, ..acc])
     }
+  }
+}
+
+fn parse_time_minute(input: Tokens, hour: Int) -> Parsed(Toml) {
+  use minutes, input <- do(parse_number_under_60(input, "minutes"))
+  use input <- expect(input, ":")
+  use seconds, input <- do(parse_number_under_60(input, "seconds"))
+  Ok(#(Time(TimeValue(hour, minutes, seconds, 0)), input))
+}
+
+fn parse_number_under_60(input: Tokens, expected: String) -> Parsed(Int) {
+  case input {
+    ["0", "0", ..input] -> Ok(#(0, input))
+    ["0", "1", ..input] -> Ok(#(1, input))
+    ["0", "2", ..input] -> Ok(#(2, input))
+    ["0", "3", ..input] -> Ok(#(3, input))
+    ["0", "4", ..input] -> Ok(#(4, input))
+    ["0", "5", ..input] -> Ok(#(5, input))
+    ["0", "6", ..input] -> Ok(#(6, input))
+    ["0", "7", ..input] -> Ok(#(7, input))
+    ["0", "8", ..input] -> Ok(#(8, input))
+    ["0", "9", ..input] -> Ok(#(9, input))
+    ["1", "0", ..input] -> Ok(#(10, input))
+    ["1", "1", ..input] -> Ok(#(11, input))
+    ["1", "2", ..input] -> Ok(#(12, input))
+    ["1", "3", ..input] -> Ok(#(13, input))
+    ["1", "4", ..input] -> Ok(#(14, input))
+    ["1", "5", ..input] -> Ok(#(15, input))
+    ["1", "6", ..input] -> Ok(#(16, input))
+    ["1", "7", ..input] -> Ok(#(17, input))
+    ["1", "8", ..input] -> Ok(#(18, input))
+    ["1", "9", ..input] -> Ok(#(19, input))
+    ["2", "0", ..input] -> Ok(#(20, input))
+    ["2", "1", ..input] -> Ok(#(21, input))
+    ["2", "2", ..input] -> Ok(#(22, input))
+    ["2", "3", ..input] -> Ok(#(23, input))
+    ["2", "4", ..input] -> Ok(#(24, input))
+    ["2", "5", ..input] -> Ok(#(25, input))
+    ["2", "6", ..input] -> Ok(#(26, input))
+    ["2", "7", ..input] -> Ok(#(27, input))
+    ["2", "8", ..input] -> Ok(#(28, input))
+    ["2", "9", ..input] -> Ok(#(29, input))
+    ["3", "0", ..input] -> Ok(#(30, input))
+    ["3", "1", ..input] -> Ok(#(31, input))
+    ["3", "2", ..input] -> Ok(#(32, input))
+    ["3", "3", ..input] -> Ok(#(33, input))
+    ["3", "4", ..input] -> Ok(#(34, input))
+    ["3", "5", ..input] -> Ok(#(35, input))
+    ["3", "6", ..input] -> Ok(#(36, input))
+    ["3", "7", ..input] -> Ok(#(37, input))
+    ["3", "8", ..input] -> Ok(#(38, input))
+    ["3", "9", ..input] -> Ok(#(39, input))
+    ["4", "0", ..input] -> Ok(#(40, input))
+    ["4", "1", ..input] -> Ok(#(41, input))
+    ["4", "2", ..input] -> Ok(#(42, input))
+    ["4", "3", ..input] -> Ok(#(43, input))
+    ["4", "4", ..input] -> Ok(#(44, input))
+    ["4", "5", ..input] -> Ok(#(45, input))
+    ["4", "6", ..input] -> Ok(#(46, input))
+    ["4", "7", ..input] -> Ok(#(47, input))
+    ["4", "8", ..input] -> Ok(#(48, input))
+    ["4", "9", ..input] -> Ok(#(49, input))
+    ["5", "0", ..input] -> Ok(#(50, input))
+    ["5", "1", ..input] -> Ok(#(51, input))
+    ["5", "2", ..input] -> Ok(#(52, input))
+    ["5", "3", ..input] -> Ok(#(53, input))
+    ["5", "4", ..input] -> Ok(#(54, input))
+    ["5", "5", ..input] -> Ok(#(55, input))
+    ["5", "6", ..input] -> Ok(#(56, input))
+    ["5", "7", ..input] -> Ok(#(57, input))
+    ["5", "8", ..input] -> Ok(#(58, input))
+    ["5", "9", ..input] -> Ok(#(59, input))
+
+    [g, ..] -> Error(Unexpected(g, expected))
+    [] -> Error(Unexpected("EOF", expected))
   }
 }
 
