@@ -1,4 +1,4 @@
-//// A (not quite complete) pure Gleam TOML parser!
+//// A pure Gleam TOML parser!
 ////
 //// ```gleam
 //// import tom

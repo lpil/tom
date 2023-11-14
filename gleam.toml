@@ -1,7 +1,7 @@
 name = "tom"
 version = "0.1.0"
 
-description = "A (not quite complete) pure Gleam TOML parser!"
+description = "A pure Gleam TOML parser!"
 licences = ["Apache-2.0"]
 repository = { type = "github", user = "lpil", repo = "toml" }
 links = [{ title = "TOML website", href = "https://toml.io/en/" }]
