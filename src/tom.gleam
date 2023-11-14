@@ -1071,9 +1071,14 @@ fn reverse_arrays_of_tables_array(
 
 fn parse_time_minute(input: Tokens, hour: Int) -> Parsed(Toml) {
   use minutes, input <- do(parse_number_under_60(input, "minutes"))
-  use input <- expect(input, ":")
-  use seconds, input <- do(parse_number_under_60(input, "seconds"))
-  Ok(#(Time(TimeValue(hour, minutes, seconds, 0)), input))
+  case input {
+    [":", ..input] -> {
+      use seconds, input <- do(parse_number_under_60(input, "seconds"))
+      Ok(#(Time(TimeValue(hour, minutes, seconds, 0)), input))
+    }
+
+    _ -> Ok(#(Time(TimeValue(hour, minutes, 0, 0)), input))
+  }
 }
 
 fn parse_number_under_60(input: Tokens, expected: String) -> Parsed(Int) {

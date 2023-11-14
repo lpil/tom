@@ -718,8 +718,15 @@ pub fn parse_date_test() {
 }
 
 pub fn parse_time_test() {
+  let expected = map.from_list([#("a", tom.Time(tom.TimeValue(7, 32, 1, 0)))])
+  "a = 07:32:01\n"
+  |> tom.parse
+  |> should.equal(Ok(expected))
+}
+
+pub fn parse_time_no_seconds_test() {
   let expected = map.from_list([#("a", tom.Time(tom.TimeValue(7, 32, 0, 0)))])
-  "a = 07:32:00\n"
+  "a = 07:32\n"
   |> tom.parse
   |> should.equal(Ok(expected))
 }
