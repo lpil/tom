@@ -1,5 +1,6 @@
 import tom
 import gleam/map
+import gleam/option
 import gleeunit
 import gleeunit/should
 
@@ -724,6 +725,13 @@ pub fn parse_time_test() {
   |> should.equal(Ok(expected))
 }
 
+pub fn parse_time_zero_minute_test() {
+  let expected = map.from_list([#("a", tom.Time(tom.TimeValue(7, 0, 1, 0)))])
+  "a = 07:00:01\n"
+  |> tom.parse
+  |> should.equal(Ok(expected))
+}
+
 pub fn parse_time_milliseconds_test() {
   let expected =
     map.from_list([#("a", tom.Time(tom.TimeValue(7, 32, 1, 999_999)))])
@@ -746,19 +754,37 @@ pub fn parse_time_no_seconds_test() {
   |> tom.parse
   |> should.equal(Ok(expected))
 }
-// pub fn parse_offset_date_time_z_test() {
-//   let expected =
-//     map.from_list([
-//       #(
-//         "a",
-//         tom.DateTime(tom.DateTimeValue(
-//           tom.DateValue(1979, 5, 27),
-//           tom.TimeValue(7, 32, 0, 0),
-//           offset: option.Some(0),
-//         )),
-//       ),
-//     ])
-//   "a = 1979-05-27T07:32:00Z"
-//   |> tom.parse
-//   |> should.equal(Ok(expected))
-// }
+
+pub fn parse_offset_date_time_test() {
+  let expected =
+    map.from_list([
+      #(
+        "a",
+        tom.DateTime(tom.DateTimeValue(
+          tom.DateValue(1979, 5, 27),
+          tom.TimeValue(7, 32, 0, 0),
+          offset: option.None,
+        )),
+      ),
+    ])
+  "a = 1979-05-27T07:32:00\n"
+  |> tom.parse
+  |> should.equal(Ok(expected))
+}
+
+pub fn parse_offset_date_time_space_test() {
+  let expected =
+    map.from_list([
+      #(
+        "a",
+        tom.DateTime(tom.DateTimeValue(
+          tom.DateValue(1979, 5, 27),
+          tom.TimeValue(7, 0, 1, 0),
+          offset: option.None,
+        )),
+      ),
+    ])
+  "a = 1979-05-27 07:00:01\n"
+  |> tom.parse
+  |> should.equal(Ok(expected))
+}

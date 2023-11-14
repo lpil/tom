@@ -76,7 +76,7 @@ Further documentation can be found at <https://hexdocs.pm/tom>.
 - [x] Float with exponent
 - [x] Boolean
 - [ ] Offset Date-Time
-- [ ] Local Date-Time
+- [x] Local Date-Time
 - [x] Local Date
 - [x] Local Time
 - [x] Array

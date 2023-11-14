@@ -1070,39 +1070,80 @@ fn reverse_arrays_of_tables_array(
 }
 
 fn parse_time_minute(input: Tokens, hour: Int) -> Parsed(Toml) {
-  use minutes, input <- do(parse_number_under_60(input, "minutes"))
-  case input {
-    [":", ..input] -> {
-      use seconds, input <- do(parse_number_under_60(input, "seconds"))
-      let time = TimeValue(hour, minutes, seconds, 0)
-      case input {
-        [".", ..input] -> parse_time_ms(input, time, 0)
-        _ -> Ok(#(Time(time), input))
-      }
-    }
-
-    _ -> Ok(#(Time(TimeValue(hour, minutes, 0, 0)), input))
+  case parse_time_value_minute(input, hour) {
+    Ok(#(time, input)) -> Ok(#(Time(time), input))
+    Error(e) -> Error(e)
   }
 }
 
-fn parse_time_ms(input: Tokens, time: Time, n: Int) -> Parsed(Toml) {
+fn parse_time_value(input: Tokens) -> Parsed(Time) {
   case input {
-    ["0", ..input] if n < 100_000 -> parse_time_ms(input, time, n * 10 + 0)
-    ["1", ..input] if n < 100_000 -> parse_time_ms(input, time, n * 10 + 1)
-    ["2", ..input] if n < 100_000 -> parse_time_ms(input, time, n * 10 + 2)
-    ["3", ..input] if n < 100_000 -> parse_time_ms(input, time, n * 10 + 3)
-    ["4", ..input] if n < 100_000 -> parse_time_ms(input, time, n * 10 + 4)
-    ["5", ..input] if n < 100_000 -> parse_time_ms(input, time, n * 10 + 5)
-    ["6", ..input] if n < 100_000 -> parse_time_ms(input, time, n * 10 + 6)
-    ["7", ..input] if n < 100_000 -> parse_time_ms(input, time, n * 10 + 7)
-    ["8", ..input] if n < 100_000 -> parse_time_ms(input, time, n * 10 + 8)
-    ["9", ..input] if n < 100_000 -> parse_time_ms(input, time, n * 10 + 9)
+    ["0", "0", ":", ..input] -> parse_time_value_minute(input, 0)
+    ["0", "1", ":", ..input] -> parse_time_value_minute(input, 1)
+    ["0", "2", ":", ..input] -> parse_time_value_minute(input, 2)
+    ["0", "3", ":", ..input] -> parse_time_value_minute(input, 3)
+    ["0", "4", ":", ..input] -> parse_time_value_minute(input, 4)
+    ["0", "5", ":", ..input] -> parse_time_value_minute(input, 5)
+    ["0", "6", ":", ..input] -> parse_time_value_minute(input, 6)
+    ["0", "7", ":", ..input] -> parse_time_value_minute(input, 7)
+    ["0", "8", ":", ..input] -> parse_time_value_minute(input, 8)
+    ["0", "9", ":", ..input] -> parse_time_value_minute(input, 9)
+    ["1", "0", ":", ..input] -> parse_time_value_minute(input, 10)
+    ["1", "1", ":", ..input] -> parse_time_value_minute(input, 11)
+    ["1", "2", ":", ..input] -> parse_time_value_minute(input, 12)
+    ["1", "3", ":", ..input] -> parse_time_value_minute(input, 13)
+    ["1", "4", ":", ..input] -> parse_time_value_minute(input, 14)
+    ["1", "5", ":", ..input] -> parse_time_value_minute(input, 15)
+    ["1", "6", ":", ..input] -> parse_time_value_minute(input, 16)
+    ["1", "7", ":", ..input] -> parse_time_value_minute(input, 17)
+    ["1", "8", ":", ..input] -> parse_time_value_minute(input, 18)
+    ["1", "9", ":", ..input] -> parse_time_value_minute(input, 19)
+    ["2", "0", ":", ..input] -> parse_time_value_minute(input, 20)
+    ["2", "1", ":", ..input] -> parse_time_value_minute(input, 21)
+    ["2", "2", ":", ..input] -> parse_time_value_minute(input, 22)
+    ["2", "3", ":", ..input] -> parse_time_value_minute(input, 23)
+
+    [g, ..] -> Error(Unexpected(g, "time"))
+    [] -> Error(Unexpected("EOF", "time"))
+  }
+}
+
+fn parse_time_value_minute(input: Tokens, hours: Int) -> Parsed(Time) {
+  use minutes, input <- do(parse_number_under_60(input, "minutes"))
+  use #(seconds, ms), input <- do(parse_time_s_ms(input))
+  let time = TimeValue(hours, minutes, seconds, ms)
+  Ok(#(time, input))
+}
+
+fn parse_time_s_ms(input: Tokens) -> Parsed(#(Int, Int)) {
+  case input {
+    [":", ..input] -> {
+      use seconds, input <- do(parse_number_under_60(input, "seconds"))
+      case input {
+        [".", ..input] -> parse_time_ms(input, seconds, 0)
+        _ -> Ok(#(#(seconds, 0), input))
+      }
+    }
+
+    _ -> Ok(#(#(0, 0), input))
+  }
+}
+
+fn parse_time_ms(input: Tokens, seconds: Int, ms: Int) -> Parsed(#(Int, Int)) {
+  case input {
+    ["0", ..input] if ms < 100_000 -> parse_time_ms(input, seconds, ms * 10 + 0)
+    ["1", ..input] if ms < 100_000 -> parse_time_ms(input, seconds, ms * 10 + 1)
+    ["2", ..input] if ms < 100_000 -> parse_time_ms(input, seconds, ms * 10 + 2)
+    ["3", ..input] if ms < 100_000 -> parse_time_ms(input, seconds, ms * 10 + 3)
+    ["4", ..input] if ms < 100_000 -> parse_time_ms(input, seconds, ms * 10 + 4)
+    ["5", ..input] if ms < 100_000 -> parse_time_ms(input, seconds, ms * 10 + 5)
+    ["6", ..input] if ms < 100_000 -> parse_time_ms(input, seconds, ms * 10 + 6)
+    ["7", ..input] if ms < 100_000 -> parse_time_ms(input, seconds, ms * 10 + 7)
+    ["8", ..input] if ms < 100_000 -> parse_time_ms(input, seconds, ms * 10 + 8)
+    ["9", ..input] if ms < 100_000 -> parse_time_ms(input, seconds, ms * 10 + 9)
 
     // Anything else and the number is terminated
-    _ -> {
-      let time = TimeValue(..time, millisecond: n)
-      Ok(#(Time(time), input))
-    }
+    _ -> Ok(#(#(seconds, ms), input))
   }
 }
 
@@ -1239,5 +1280,13 @@ fn parse_date_end(
   month: Int,
   day: Int,
 ) -> Parsed(Toml) {
-  Ok(#(Date(DateValue(year, month, day)), input))
+  let date = DateValue(year, month, day)
+  case input {
+    [" ", ..input] | ["T", ..input] -> {
+      use time, input <- do(parse_time_value(input))
+      Ok(#(DateTime(DateTimeValue(date, time, option.None)), input))
+    }
+
+    _ -> Ok(#(Date(date), input))
+  }
 }
