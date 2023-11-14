@@ -1,6 +1,5 @@
 import tom
 import gleam/map
-import gleam/option
 import gleeunit
 import gleeunit/should
 
@@ -755,7 +754,7 @@ pub fn parse_time_no_seconds_test() {
   |> should.equal(Ok(expected))
 }
 
-pub fn parse_offset_date_time_test() {
+pub fn parse_date_time_test() {
   let expected =
     map.from_list([
       #(
@@ -763,7 +762,7 @@ pub fn parse_offset_date_time_test() {
         tom.DateTime(tom.DateTimeValue(
           tom.DateValue(1979, 5, 27),
           tom.TimeValue(7, 32, 0, 0),
-          offset: option.None,
+          offset: tom.Local,
         )),
       ),
     ])
@@ -772,7 +771,7 @@ pub fn parse_offset_date_time_test() {
   |> should.equal(Ok(expected))
 }
 
-pub fn parse_offset_date_time_space_test() {
+pub fn parse_date_time_space_test() {
   let expected =
     map.from_list([
       #(
@@ -780,11 +779,79 @@ pub fn parse_offset_date_time_space_test() {
         tom.DateTime(tom.DateTimeValue(
           tom.DateValue(1979, 5, 27),
           tom.TimeValue(7, 0, 1, 0),
-          offset: option.None,
+          offset: tom.Local,
         )),
       ),
     ])
   "a = 1979-05-27 07:00:01\n"
+  |> tom.parse
+  |> should.equal(Ok(expected))
+}
+
+pub fn parse_offset_z_date_time_test() {
+  let expected =
+    map.from_list([
+      #(
+        "a",
+        tom.DateTime(tom.DateTimeValue(
+          tom.DateValue(1979, 5, 27),
+          tom.TimeValue(7, 32, 0, 0),
+          offset: tom.Offset(tom.Positive, 0, 0),
+        )),
+      ),
+    ])
+  "a = 1979-05-27T07:32:00Z\n"
+  |> tom.parse
+  |> should.equal(Ok(expected))
+}
+
+pub fn parse_offset_z_date_time_space_test() {
+  let expected =
+    map.from_list([
+      #(
+        "a",
+        tom.DateTime(tom.DateTimeValue(
+          tom.DateValue(1979, 5, 27),
+          tom.TimeValue(7, 0, 1, 0),
+          offset: tom.Offset(tom.Positive, 0, 0),
+        )),
+      ),
+    ])
+  "a = 1979-05-27 07:00:01Z\n"
+  |> tom.parse
+  |> should.equal(Ok(expected))
+}
+
+pub fn parse_offset_positive_date_time_space_test() {
+  let expected =
+    map.from_list([
+      #(
+        "a",
+        tom.DateTime(tom.DateTimeValue(
+          tom.DateValue(1979, 5, 27),
+          tom.TimeValue(7, 0, 1, 0),
+          offset: tom.Offset(tom.Positive, 7, 40),
+        )),
+      ),
+    ])
+  "a = 1979-05-27 07:00:01+07:40\n"
+  |> tom.parse
+  |> should.equal(Ok(expected))
+}
+
+pub fn parse_offset_negative_date_time_space_test() {
+  let expected =
+    map.from_list([
+      #(
+        "a",
+        tom.DateTime(tom.DateTimeValue(
+          tom.DateValue(1979, 5, 27),
+          tom.TimeValue(7, 0, 1, 0),
+          offset: tom.Offset(tom.Negative, 7, 01),
+        )),
+      ),
+    ])
+  "a = 1979-05-27 07:00:01-07:01\n"
   |> tom.parse
   |> should.equal(Ok(expected))
 }

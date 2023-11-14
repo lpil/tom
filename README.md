@@ -75,7 +75,7 @@ Further documentation can be found at <https://hexdocs.pm/tom>.
 - [x] Negative NaN
 - [x] Float with exponent
 - [x] Boolean
-- [ ] Offset Date-Time
+- [x] Offset Date-Time
 - [x] Local Date-Time
 - [x] Local Date
 - [x] Local Time

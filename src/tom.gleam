@@ -29,7 +29,6 @@ import gleam/list
 import gleam/float
 import gleam/string
 import gleam/result
-import gleam/option.{type Option}
 import gleam/map.{type Map}
 
 /// A TOML document.
@@ -54,7 +53,7 @@ pub type Toml {
 }
 
 pub type DateTime {
-  DateTimeValue(date: Date, time: Time, offset: Option(Int))
+  DateTimeValue(date: Date, time: Time, offset: Offset)
 }
 
 pub type Date {
@@ -63,6 +62,11 @@ pub type Date {
 
 pub type Time {
   TimeValue(hour: Int, minute: Int, second: Int, millisecond: Int)
+}
+
+pub type Offset {
+  Local
+  Offset(direction: Sign, hours: Int, minutes: Int)
 }
 
 pub type Sign {
@@ -1069,47 +1073,49 @@ fn reverse_arrays_of_tables_array(
   }
 }
 
-fn parse_time_minute(input: Tokens, hour: Int) -> Parsed(Toml) {
-  case parse_time_value_minute(input, hour) {
-    Ok(#(time, input)) -> Ok(#(Time(time), input))
-    Error(e) -> Error(e)
-  }
+fn parse_time_minute(input: Tokens, hours: Int) -> Parsed(Toml) {
+  use minutes, input <- do(parse_number_under_60(input, "minutes"))
+  use #(seconds, ms), input <- do(parse_time_s_ms(input))
+  let time = TimeValue(hours, minutes, seconds, ms)
+  Ok(#(Time(time), input))
+}
+
+fn parse_hour_minute(input: Tokens) -> Parsed(#(Int, Int)) {
+  use hours, input <- do(case input {
+    ["0", "0", ":", ..input] -> Ok(#(0, input))
+    ["0", "1", ":", ..input] -> Ok(#(1, input))
+    ["0", "2", ":", ..input] -> Ok(#(2, input))
+    ["0", "3", ":", ..input] -> Ok(#(3, input))
+    ["0", "4", ":", ..input] -> Ok(#(4, input))
+    ["0", "5", ":", ..input] -> Ok(#(5, input))
+    ["0", "6", ":", ..input] -> Ok(#(6, input))
+    ["0", "7", ":", ..input] -> Ok(#(7, input))
+    ["0", "8", ":", ..input] -> Ok(#(8, input))
+    ["0", "9", ":", ..input] -> Ok(#(9, input))
+    ["1", "0", ":", ..input] -> Ok(#(10, input))
+    ["1", "1", ":", ..input] -> Ok(#(11, input))
+    ["1", "2", ":", ..input] -> Ok(#(12, input))
+    ["1", "3", ":", ..input] -> Ok(#(13, input))
+    ["1", "4", ":", ..input] -> Ok(#(14, input))
+    ["1", "5", ":", ..input] -> Ok(#(15, input))
+    ["1", "6", ":", ..input] -> Ok(#(16, input))
+    ["1", "7", ":", ..input] -> Ok(#(17, input))
+    ["1", "8", ":", ..input] -> Ok(#(18, input))
+    ["1", "9", ":", ..input] -> Ok(#(19, input))
+    ["2", "0", ":", ..input] -> Ok(#(20, input))
+    ["2", "1", ":", ..input] -> Ok(#(21, input))
+    ["2", "2", ":", ..input] -> Ok(#(22, input))
+    ["2", "3", ":", ..input] -> Ok(#(23, input))
+    [g, ..] -> Error(Unexpected(g, "time"))
+    [] -> Error(Unexpected("EOF", "time"))
+  })
+
+  use minutes, input <- do(parse_number_under_60(input, "minutes"))
+  Ok(#(#(hours, minutes), input))
 }
 
 fn parse_time_value(input: Tokens) -> Parsed(Time) {
-  case input {
-    ["0", "0", ":", ..input] -> parse_time_value_minute(input, 0)
-    ["0", "1", ":", ..input] -> parse_time_value_minute(input, 1)
-    ["0", "2", ":", ..input] -> parse_time_value_minute(input, 2)
-    ["0", "3", ":", ..input] -> parse_time_value_minute(input, 3)
-    ["0", "4", ":", ..input] -> parse_time_value_minute(input, 4)
-    ["0", "5", ":", ..input] -> parse_time_value_minute(input, 5)
-    ["0", "6", ":", ..input] -> parse_time_value_minute(input, 6)
-    ["0", "7", ":", ..input] -> parse_time_value_minute(input, 7)
-    ["0", "8", ":", ..input] -> parse_time_value_minute(input, 8)
-    ["0", "9", ":", ..input] -> parse_time_value_minute(input, 9)
-    ["1", "0", ":", ..input] -> parse_time_value_minute(input, 10)
-    ["1", "1", ":", ..input] -> parse_time_value_minute(input, 11)
-    ["1", "2", ":", ..input] -> parse_time_value_minute(input, 12)
-    ["1", "3", ":", ..input] -> parse_time_value_minute(input, 13)
-    ["1", "4", ":", ..input] -> parse_time_value_minute(input, 14)
-    ["1", "5", ":", ..input] -> parse_time_value_minute(input, 15)
-    ["1", "6", ":", ..input] -> parse_time_value_minute(input, 16)
-    ["1", "7", ":", ..input] -> parse_time_value_minute(input, 17)
-    ["1", "8", ":", ..input] -> parse_time_value_minute(input, 18)
-    ["1", "9", ":", ..input] -> parse_time_value_minute(input, 19)
-    ["2", "0", ":", ..input] -> parse_time_value_minute(input, 20)
-    ["2", "1", ":", ..input] -> parse_time_value_minute(input, 21)
-    ["2", "2", ":", ..input] -> parse_time_value_minute(input, 22)
-    ["2", "3", ":", ..input] -> parse_time_value_minute(input, 23)
-
-    [g, ..] -> Error(Unexpected(g, "time"))
-    [] -> Error(Unexpected("EOF", "time"))
-  }
-}
-
-fn parse_time_value_minute(input: Tokens, hours: Int) -> Parsed(Time) {
-  use minutes, input <- do(parse_number_under_60(input, "minutes"))
+  use #(hours, minutes), input <- do(parse_hour_minute(input))
   use #(seconds, ms), input <- do(parse_time_s_ms(input))
   let time = TimeValue(hours, minutes, seconds, ms)
   Ok(#(time, input))
@@ -1284,9 +1290,24 @@ fn parse_date_end(
   case input {
     [" ", ..input] | ["T", ..input] -> {
       use time, input <- do(parse_time_value(input))
-      Ok(#(DateTime(DateTimeValue(date, time, option.None)), input))
+      use offset, input <- do(parse_offset(input))
+      Ok(#(DateTime(DateTimeValue(date, time, offset)), input))
     }
 
     _ -> Ok(#(Date(date), input))
   }
+}
+
+fn parse_offset(input: Tokens) -> Parsed(Offset) {
+  case input {
+    ["Z", ..input] -> Ok(#(Offset(Positive, 0, 0), input))
+    ["+", ..input] -> parse_offset_hours(input, Positive)
+    ["-", ..input] -> parse_offset_hours(input, Negative)
+    _ -> Ok(#(Local, input))
+  }
+}
+
+fn parse_offset_hours(input: Tokens, sign: Sign) -> Parsed(Offset) {
+  use #(hours, minutes), input <- do(parse_hour_minute(input))
+  Ok(#(Offset(sign, hours, minutes), input))
 }
