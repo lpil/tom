@@ -741,7 +741,7 @@ pub fn parse_time_milliseconds_test() {
 
 pub fn parse_time_milliseconds_1_test() {
   let expected =
-    map.from_list([#("a", tom.Time(tom.TimeValue(7, 32, 1, 09_179)))])
+    map.from_list([#("a", tom.Time(tom.TimeValue(7, 32, 1, 9179)))])
   "a = 07:32:01.09179\n"
   |> tom.parse
   |> should.equal(Ok(expected))
@@ -847,7 +847,7 @@ pub fn parse_offset_negative_date_time_space_test() {
         tom.DateTime(tom.DateTimeValue(
           tom.DateValue(1979, 5, 27),
           tom.TimeValue(7, 0, 1, 0),
-          offset: tom.Offset(tom.Negative, 7, 01),
+          offset: tom.Offset(tom.Negative, 7, 1),
         )),
       ),
     ])
