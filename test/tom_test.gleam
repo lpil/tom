@@ -855,3 +855,23 @@ pub fn parse_offset_negative_date_time_space_test() {
   |> tom.parse
   |> should.equal(Ok(expected))
 }
+
+pub fn parse_no_trailing_newline_test() {
+  let expected = map.from_list([#("a", tom.Int(1))])
+  "a = 1"
+  |> tom.parse
+  |> should.equal(Ok(expected))
+}
+
+pub fn parse_trailing_whitespace_test() {
+  let expected = map.from_list([#("a", tom.Int(1))])
+  "a = 1 "
+  |> tom.parse
+  |> should.equal(Ok(expected))
+}
+
+pub fn parse_trailing_other_test() {
+  "a = 1 b"
+  |> tom.parse
+  |> should.equal(Error(tom.Unexpected("b", "\n")))
+}

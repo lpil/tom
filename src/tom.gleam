@@ -465,7 +465,12 @@ fn parse_table(
     ["[", ..] | [] -> Ok(#(toml, input))
     _ ->
       case parse_key_value(input, toml) {
-        Ok(#(toml, input)) -> parse_table(input, toml)
+        Ok(#(toml, input)) ->
+          case skip_line_whitespace(input) {
+            [] -> Ok(#(toml, []))
+            ["\n", ..in] | ["\r\n", ..in] -> parse_table(in, toml)
+            [g, ..] -> Error(Unexpected(g, "\n"))
+          }
         e -> e
       }
   }
@@ -480,7 +485,6 @@ fn parse_key_value(
   use input <- expect(input, "=")
   let input = skip_line_whitespace(input)
   use value, input <- do(parse_value(input))
-  use input <- expect_end_of_line(input)
   case insert(toml, key, value) {
     Ok(toml) -> Ok(#(toml, input))
     Error(e) -> Error(e)
