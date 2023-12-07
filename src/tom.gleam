@@ -29,7 +29,7 @@ import gleam/list
 import gleam/float
 import gleam/string
 import gleam/result
-import gleam/map.{type Map}
+import gleam/dict.{type Dict}
 
 /// A TOML document.
 pub type Toml {
@@ -47,9 +47,9 @@ pub type Toml {
   Time(Time)
   DateTime(DateTime)
   Array(List(Toml))
-  ArrayOfTables(List(Map(String, Toml)))
-  Table(Map(String, Toml))
-  InlineTable(Map(String, Toml))
+  ArrayOfTables(List(Dict(String, Toml)))
+  Table(Dict(String, Toml))
+  InlineTable(Dict(String, Toml))
 }
 
 pub type DateTime {
@@ -116,12 +116,15 @@ pub type GetError {
 /// // -> Ok(Int(1))
 /// ```
 ///
-pub fn get(toml: Map(String, Toml), key: List(String)) -> Result(Toml, GetError) {
+pub fn get(
+  toml: Dict(String, Toml),
+  key: List(String),
+) -> Result(Toml, GetError) {
   case key {
     [] -> Error(NotFound([]))
-    [k] -> result.replace_error(map.get(toml, k), NotFound([k]))
+    [k] -> result.replace_error(dict.get(toml, k), NotFound([k]))
     [k, ..key] -> {
-      case map.get(toml, k) {
+      case dict.get(toml, k) {
         Ok(Table(t)) -> push_key(get(t, key), k)
         Ok(other) -> Error(WrongType([k], "Table", classify(other)))
         Error(_) -> Error(NotFound([k]))
@@ -142,7 +145,7 @@ pub fn get(toml: Map(String, Toml), key: List(String)) -> Result(Toml, GetError)
 /// ```
 ///
 pub fn get_int(
-  toml: Map(String, Toml),
+  toml: Dict(String, Toml),
   key: List(String),
 ) -> Result(Int, GetError) {
   case get(toml, key) {
@@ -164,7 +167,7 @@ pub fn get_int(
 /// ```
 ///
 pub fn get_float(
-  toml: Map(String, Toml),
+  toml: Dict(String, Toml),
   key: List(String),
 ) -> Result(Float, GetError) {
   case get(toml, key) {
@@ -186,7 +189,7 @@ pub fn get_float(
 /// ```
 ///
 pub fn get_bool(
-  toml: Map(String, Toml),
+  toml: Dict(String, Toml),
   key: List(String),
 ) -> Result(Bool, GetError) {
   case get(toml, key) {
@@ -208,7 +211,7 @@ pub fn get_bool(
 /// ```
 ///
 pub fn get_string(
-  toml: Map(String, Toml),
+  toml: Dict(String, Toml),
   key: List(String),
 ) -> Result(String, GetError) {
   case get(toml, key) {
@@ -230,7 +233,7 @@ pub fn get_string(
 /// ```
 ///
 pub fn get_date(
-  toml: Map(String, Toml),
+  toml: Dict(String, Toml),
   key: List(String),
 ) -> Result(Date, GetError) {
   case get(toml, key) {
@@ -252,7 +255,7 @@ pub fn get_date(
 /// ```
 ///
 pub fn get_time(
-  toml: Map(String, Toml),
+  toml: Dict(String, Toml),
   key: List(String),
 ) -> Result(Time, GetError) {
   case get(toml, key) {
@@ -274,7 +277,7 @@ pub fn get_time(
 /// ```
 ///
 pub fn get_date_time(
-  toml: Map(String, Toml),
+  toml: Dict(String, Toml),
   key: List(String),
 ) -> Result(DateTime, GetError) {
   case get(toml, key) {
@@ -296,7 +299,7 @@ pub fn get_date_time(
 /// ```
 ///
 pub fn get_array(
-  toml: Map(String, Toml),
+  toml: Dict(String, Toml),
   key: List(String),
 ) -> Result(List(Toml), GetError) {
   case get(toml, key) {
@@ -315,13 +318,13 @@ pub fn get_array(
 /// ```gleam
 /// let assert Ok(parsed) = parse("a.b.c = { d = 1 }")
 /// get_table(parsed, ["a", "b", "c"])
-/// // -> Ok(map.from_list([#("d", Int(1))]))
+/// // -> Ok(dict.from_list([#("d", Int(1))]))
 /// ```
 ///
 pub fn get_table(
-  toml: Map(String, Toml),
+  toml: Dict(String, Toml),
   key: List(String),
-) -> Result(Map(String, Toml), GetError) {
+) -> Result(Dict(String, Toml), GetError) {
   case get(toml, key) {
     Ok(Table(i)) -> Ok(i)
     Ok(InlineTable(i)) -> Ok(i)
@@ -343,7 +346,7 @@ pub fn get_table(
 /// ```
 ///
 pub fn get_number(
-  toml: Map(String, Toml),
+  toml: Dict(String, Toml),
   key: List(String),
 ) -> Result(Number, GetError) {
   case get(toml, key) {
@@ -385,11 +388,11 @@ fn push_key(result: Result(t, GetError), key: String) -> Result(t, GetError) {
   }
 }
 
-pub fn parse(input: String) -> Result(Map(String, Toml), ParseError) {
+pub fn parse(input: String) -> Result(Dict(String, Toml), ParseError) {
   let input = string.to_graphemes(input)
   let input = drop_comments(input, [])
   let input = skip_whitespace(input)
-  use toml, input <- do(parse_table(input, map.new()))
+  use toml, input <- do(parse_table(input, dict.new()))
   case parse_tables(input, toml) {
     Ok(toml) -> Ok(reverse_arrays_of_tables_table(toml))
     Error(e) -> Error(e)
@@ -398,8 +401,8 @@ pub fn parse(input: String) -> Result(Map(String, Toml), ParseError) {
 
 fn parse_tables(
   input: Tokens,
-  toml: Map(String, Toml),
-) -> Result(Map(String, Toml), ParseError) {
+  toml: Dict(String, Toml),
+) -> Result(Dict(String, Toml), ParseError) {
   case input {
     ["[", "[", ..input] -> {
       case parse_array_of_tables(input) {
@@ -430,12 +433,12 @@ fn parse_tables(
 
 fn parse_array_of_tables(
   input: Tokens,
-) -> Parsed(#(List(String), Map(String, Toml))) {
+) -> Parsed(#(List(String), Dict(String, Toml))) {
   let input = skip_line_whitespace(input)
   use key, input <- do(parse_key(input, []))
   use input <- expect(input, "]")
   use input <- expect(input, "]")
-  use table, input <- do(parse_table(input, map.new()))
+  use table, input <- do(parse_table(input, dict.new()))
   Ok(#(#(key, table), input))
 }
 
@@ -450,16 +453,16 @@ fn parse_table_header(input: Tokens) -> Parsed(List(String)) {
 
 fn parse_table_and_header(
   input: Tokens,
-) -> Parsed(#(List(String), Map(String, Toml))) {
+) -> Parsed(#(List(String), Dict(String, Toml))) {
   use key, input <- do(parse_table_header(input))
-  use table, input <- do(parse_table(input, map.new()))
+  use table, input <- do(parse_table(input, dict.new()))
   Ok(#(#(key, table), input))
 }
 
 fn parse_table(
   input: Tokens,
-  toml: Map(String, Toml),
-) -> Parsed(Map(String, Toml)) {
+  toml: Dict(String, Toml),
+) -> Parsed(Dict(String, Toml)) {
   let input = skip_whitespace(input)
   case input {
     ["[", ..] | [] -> Ok(#(toml, input))
@@ -478,8 +481,8 @@ fn parse_table(
 
 fn parse_key_value(
   input: Tokens,
-  toml: Map(String, Toml),
-) -> Parsed(Map(String, Toml)) {
+  toml: Dict(String, Toml),
+) -> Parsed(Dict(String, Toml)) {
   use key, input <- do(parse_key(input, []))
   let input = skip_line_whitespace(input)
   use input <- expect(input, "=")
@@ -492,10 +495,10 @@ fn parse_key_value(
 }
 
 fn insert(
-  table: Map(String, Toml),
+  table: Dict(String, Toml),
   key: List(String),
   value: Toml,
-) -> Result(Map(String, Toml), ParseError) {
+) -> Result(Dict(String, Toml), ParseError) {
   case insert_loop(table, key, value) {
     Ok(table) -> Ok(table)
     Error(path) -> Error(KeyAlreadyInUse(path))
@@ -503,36 +506,36 @@ fn insert(
 }
 
 fn insert_loop(
-  table: Map(String, Toml),
+  table: Dict(String, Toml),
   key: List(String),
   value: Toml,
-) -> Result(Map(String, Toml), List(String)) {
+) -> Result(Dict(String, Toml), List(String)) {
   case key {
     [] -> panic as "unreachable"
     [k] -> {
-      case map.get(table, k) {
-        Error(Nil) -> Ok(map.insert(table, k, value))
+      case dict.get(table, k) {
+        Error(Nil) -> Ok(dict.insert(table, k, value))
         Ok(old) -> merge(table, k, old, value)
       }
     }
     [k, ..key] -> {
-      case map.get(table, k) {
+      case dict.get(table, k) {
         Error(Nil) -> {
-          case insert_loop(map.new(), key, value) {
-            Ok(inner) -> Ok(map.insert(table, k, Table(inner)))
+          case insert_loop(dict.new(), key, value) {
+            Ok(inner) -> Ok(dict.insert(table, k, Table(inner)))
             Error(path) -> Error([k, ..path])
           }
         }
         Ok(ArrayOfTables([inner, ..rest])) -> {
           case insert_loop(inner, key, value) {
             Ok(inner) ->
-              Ok(map.insert(table, k, ArrayOfTables([inner, ..rest])))
+              Ok(dict.insert(table, k, ArrayOfTables([inner, ..rest])))
             Error(path) -> Error([k, ..path])
           }
         }
         Ok(Table(inner)) -> {
           case insert_loop(inner, key, value) {
-            Ok(inner) -> Ok(map.insert(table, k, Table(inner)))
+            Ok(inner) -> Ok(dict.insert(table, k, Table(inner)))
             Error(path) -> Error([k, ..path])
           }
         }
@@ -543,15 +546,15 @@ fn insert_loop(
 }
 
 fn merge(
-  table: Map(String, Toml),
+  table: Dict(String, Toml),
   key: String,
   old: Toml,
   new: Toml,
-) -> Result(Map(String, Toml), List(String)) {
+) -> Result(Dict(String, Toml), List(String)) {
   case old, new {
     // When both are arrays of tables then they are merged together
     ArrayOfTables(tables), ArrayOfTables(new) ->
-      Ok(map.insert(table, key, ArrayOfTables(list.append(new, tables))))
+      Ok(dict.insert(table, key, ArrayOfTables(list.append(new, tables))))
 
     _, _ -> Error([key])
   }
@@ -580,7 +583,7 @@ fn parse_value(input) -> Parsed(Toml) {
     ["-", "i", "n", "f", ..input] -> Ok(#(Infinity(Negative), input))
 
     ["[", ..input] -> parse_array(input, [])
-    ["{", ..input] -> parse_inline_table(input, map.new())
+    ["{", ..input] -> parse_inline_table(input, dict.new())
 
     ["0", "x", ..input] -> parse_hex(input, 0, Positive)
     ["+", "0", "x", ..input] -> parse_hex(input, 0, Positive)
@@ -721,7 +724,7 @@ fn expect(
 
 fn parse_inline_table(
   input: Tokens,
-  properties: Map(String, Toml),
+  properties: Dict(String, Toml),
 ) -> Parsed(Toml) {
   let input = skip_whitespace(input)
   case input {
@@ -747,8 +750,8 @@ fn parse_inline_table(
 
 fn parse_inline_table_property(
   input: Tokens,
-  properties: Map(String, Toml),
-) -> Parsed(Map(String, Toml)) {
+  properties: Dict(String, Toml),
+) -> Parsed(Dict(String, Toml)) {
   let input = skip_whitespace(input)
   use key, input <- do(parse_key(input, []))
   let input = skip_line_whitespace(input)
@@ -1060,14 +1063,16 @@ fn reverse_arrays_of_tables(toml: Toml) -> Toml {
   }
 }
 
-fn reverse_arrays_of_tables_table(table: Map(String, Toml)) -> Map(String, Toml) {
-  map.map_values(table, fn(_, v) { reverse_arrays_of_tables(v) })
+fn reverse_arrays_of_tables_table(
+  table: Dict(String, Toml),
+) -> Dict(String, Toml) {
+  dict.map_values(table, fn(_, v) { reverse_arrays_of_tables(v) })
 }
 
 fn reverse_arrays_of_tables_array(
-  array: List(Map(String, Toml)),
-  acc: List(Map(String, Toml)),
-) -> List(Map(String, Toml)) {
+  array: List(Dict(String, Toml)),
+  acc: List(Dict(String, Toml)),
+) -> List(Dict(String, Toml)) {
   case array {
     [] -> acc
     [first, ..rest] -> {
