@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.3.0 - 2023-12-07
+
+- Updated for Gleam v0.33.0.
+
 ## v0.2.1 - 2023-11-20
 
 - Documents with no trailing newline can now be parsed.
