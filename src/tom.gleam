@@ -996,6 +996,7 @@ fn parse_string(input: Tokens, string: String) -> Parsed(Toml) {
     ["\"", ..input] -> Ok(#(String(string), input))
     ["\\", "t", ..input] -> parse_string(input, string <> "\t")
     ["\\", "e", ..input] -> parse_string(input, string <> "\u{001b}")
+    ["\\", "b", ..input] -> parse_string(input, string <> "\u{0008}")
     ["\\", "n", ..input] -> parse_string(input, string <> "\n")
     ["\\", "r", ..input] -> parse_string(input, string <> "\r")
     ["\\", "f", ..input] -> parse_string(input, string <> "\f")

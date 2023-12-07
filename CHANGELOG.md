@@ -2,7 +2,7 @@
 
 ## v0.4.0 - Unreleased
 
-- Added support for `\e`, `\f`.
+- Added support for `\e`, `\f`, `\b`.
 
 ## v0.3.0 - 2023-12-07
 
