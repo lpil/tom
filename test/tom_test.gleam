@@ -899,3 +899,9 @@ pub fn parse_sequence_e_test() {
   |> tom.parse
   |> should.equal(Ok(dict.from_list([#("a", tom.String("\u{001b}"))])))
 }
+
+pub fn parse_sequence_f_test() {
+  "a = \"\\f\""
+  |> tom.parse
+  |> should.equal(Ok(dict.from_list([#("a", tom.String("\f"))])))
+}

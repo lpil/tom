@@ -40,8 +40,6 @@ Further documentation can be found at <https://hexdocs.pm/tom>.
 The following string escape sequences are not supported yet:
 
 - `\b`
-- `\f`
-- `\e`
 - `\xHH`
 - `\uHHHH`
 - `\UHHHHHHHH`

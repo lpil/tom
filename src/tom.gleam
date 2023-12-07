@@ -998,6 +998,7 @@ fn parse_string(input: Tokens, string: String) -> Parsed(Toml) {
     ["\\", "e", ..input] -> parse_string(input, string <> "\u{001b}")
     ["\\", "n", ..input] -> parse_string(input, string <> "\n")
     ["\\", "r", ..input] -> parse_string(input, string <> "\r")
+    ["\\", "f", ..input] -> parse_string(input, string <> "\f")
     ["\\", "\"", ..input] -> parse_string(input, string <> "\"")
     ["\\", "\\", ..input] -> parse_string(input, string <> "\\")
     [] -> Error(Unexpected("EOF", "\""))
