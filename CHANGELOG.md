@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.4.0 - Unreleased
+
+- Added support for `\e`.
+
 ## v0.3.0 - 2023-12-07
 
 - Updated for Gleam v0.33.0.

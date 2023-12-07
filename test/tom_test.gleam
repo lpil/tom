@@ -155,9 +155,11 @@ pub fn parse_multi_segment_key_test() {
     dict.from_list([
       #(
         "one",
-        tom.Table(dict.from_list([
-          #("two", tom.Table(dict.from_list([#("three", tom.Bool(True))]))),
-        ])),
+        tom.Table(
+          dict.from_list([
+            #("two", tom.Table(dict.from_list([#("three", tom.Bool(True))]))),
+          ]),
+        ),
       ),
     ])
   "one.two.three = true\n"
@@ -170,9 +172,11 @@ pub fn parse_multi_segment_key_with_spaeces_test() {
     dict.from_list([
       #(
         "one",
-        tom.Table(dict.from_list([
-          #("two", tom.Table(dict.from_list([#("three", tom.Bool(True))]))),
-        ])),
+        tom.Table(
+          dict.from_list([
+            #("two", tom.Table(dict.from_list([#("three", tom.Bool(True))]))),
+          ]),
+        ),
       ),
     ])
   "one  . two   .   three = true\n"
@@ -185,9 +189,11 @@ pub fn parse_multi_segment_key_quotes_test() {
     dict.from_list([
       #(
         "1",
-        tom.Table(dict.from_list([
-          #("two", tom.Table(dict.from_list([#("3", tom.Bool(True))]))),
-        ])),
+        tom.Table(
+          dict.from_list([
+            #("two", tom.Table(dict.from_list([#("3", tom.Bool(True))]))),
+          ]),
+        ),
       ),
     ])
   "\"1\".two.\"3\" = true\n"
@@ -247,10 +253,12 @@ pub fn parse_table_with_values_test() {
     dict.from_list([
       #(
         "a",
-        tom.Table(dict.from_list([
-          #("a", tom.Int(1)),
-          #("b", tom.Table(dict.from_list([#("c", tom.Int(2))]))),
-        ])),
+        tom.Table(
+          dict.from_list([
+            #("a", tom.Int(1)),
+            #("b", tom.Table(dict.from_list([#("c", tom.Int(2))]))),
+          ]),
+        ),
       ),
     ])
   "[a]
@@ -268,10 +276,12 @@ pub fn parse_table_with_values_before_test() {
       #("size", tom.Int(123)),
       #(
         "a",
-        tom.Table(dict.from_list([
-          #("a", tom.Int(1)),
-          #("b", tom.Table(dict.from_list([#("c", tom.Int(2))]))),
-        ])),
+        tom.Table(
+          dict.from_list([
+            #("a", tom.Int(1)),
+            #("b", tom.Table(dict.from_list([#("c", tom.Int(2))]))),
+          ]),
+        ),
       ),
     ])
   "name = \"Joe\"
@@ -292,10 +302,12 @@ pub fn parse_multiple_tables_test() {
       #("size", tom.Int(123)),
       #(
         "a",
-        tom.Table(dict.from_list([
-          #("a", tom.Int(1)),
-          #("b", tom.Table(dict.from_list([#("c", tom.Int(2))]))),
-        ])),
+        tom.Table(
+          dict.from_list([
+            #("a", tom.Int(1)),
+            #("b", tom.Table(dict.from_list([#("c", tom.Int(2))]))),
+          ]),
+        ),
       ),
       #("b", tom.Table(dict.from_list([#("a", tom.Int(1))]))),
     ])
@@ -325,10 +337,12 @@ pub fn parse_inline_table_test() {
     dict.from_list([
       #(
         "a",
-        tom.InlineTable(dict.from_list([
-          #("a", tom.Int(1)),
-          #("b", tom.Table(dict.from_list([#("c", tom.Int(2))]))),
-        ])),
+        tom.InlineTable(
+          dict.from_list([
+            #("a", tom.Int(1)),
+            #("b", tom.Table(dict.from_list([#("c", tom.Int(2))]))),
+          ]),
+        ),
       ),
     ])
   "a = {
@@ -345,10 +359,12 @@ pub fn parse_inline_trailing_comma_table_test() {
     dict.from_list([
       #(
         "a",
-        tom.InlineTable(dict.from_list([
-          #("a", tom.Int(1)),
-          #("b", tom.Table(dict.from_list([#("c", tom.Int(2))]))),
-        ])),
+        tom.InlineTable(
+          dict.from_list([
+            #("a", tom.Int(1)),
+            #("b", tom.Table(dict.from_list([#("c", tom.Int(2))]))),
+          ]),
+        ),
       ),
     ])
   "a = {
@@ -428,10 +444,12 @@ pub fn parse_array_of_tables_with_subtable_test() {
             #("name", tom.String("apple")),
             #(
               "physical",
-              tom.Table(dict.from_list([
-                #("color", tom.String("red")),
-                #("shape", tom.String("round")),
-              ])),
+              tom.Table(
+                dict.from_list([
+                  #("color", tom.String("red")),
+                  #("shape", tom.String("round")),
+                ]),
+              ),
             ),
           ]),
         ]),
@@ -874,4 +892,10 @@ pub fn parse_trailing_other_test() {
   "a = 1 b"
   |> tom.parse
   |> should.equal(Error(tom.Unexpected("b", "\n")))
+}
+
+pub fn parse_sequence_e_test() {
+  "a = \"\\e\""
+  |> tom.parse
+  |> should.equal(Ok(dict.from_list([#("a", tom.String("\u{001b}"))])))
 }
