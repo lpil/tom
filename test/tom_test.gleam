@@ -1,7 +1,7 @@
-import tom
 import gleam/dict
 import gleeunit
 import gleeunit/should
+import tom
 
 pub fn main() {
   gleeunit.main()
@@ -910,4 +910,21 @@ pub fn parse_sequence_b_test() {
   "a = \"\\b\""
   |> tom.parse
   |> should.equal(Ok(dict.from_list([#("a", tom.String("\u{0008}"))])))
+}
+
+pub fn parse_ignore_comments_test() {
+  let expected = dict.from_list([#("field", tom.String("#"))])
+  "# This should be ignored
+field = \"#\""
+  |> tom.parse
+  |> should.equal(Ok(expected))
+}
+
+pub fn parse_not_remove_hash_in_string_test() {
+  let content = tom.Table(dict.from_list([#("field", tom.String("#"))]))
+  let expected = dict.from_list([#("section", content)])
+  "[section]
+field = \"#\""
+  |> tom.parse
+  |> should.equal(Ok(expected))
 }
