@@ -24,12 +24,12 @@
 //// }
 //// ```
 
+import gleam/dict.{type Dict}
+import gleam/float
 import gleam/int
 import gleam/list
-import gleam/float
-import gleam/string
 import gleam/result
-import gleam/dict.{type Dict}
+import gleam/string
 
 /// A TOML document.
 pub type Toml {
@@ -390,7 +390,7 @@ fn push_key(result: Result(t, GetError), key: String) -> Result(t, GetError) {
 
 pub fn parse(input: String) -> Result(Dict(String, Toml), ParseError) {
   let input = string.to_graphemes(input)
-  let input = drop_comments(input, [])
+  let input = drop_comments(input, [], False)
   let input = skip_whitespace(input)
   use toml, input <- do(parse_table(input, dict.new()))
   case parse_tables(input, toml) {
@@ -689,13 +689,17 @@ fn skip_whitespace(input: Tokens) -> Tokens {
   }
 }
 
-fn drop_comments(input: Tokens, acc: Tokens) -> Tokens {
+fn drop_comments(input: Tokens, acc: Tokens, in_string: Bool) -> Tokens {
   case input {
-    ["#", ..input] ->
+    ["\\", "\"", ..input] if in_string ->
+      drop_comments(input, ["\"", "\\", ..acc], in_string)
+    ["\"", ..input] -> drop_comments(input, ["\"", ..acc], !in_string)
+    ["#", ..input] if in_string -> drop_comments(input, ["#", ..acc], in_string)
+    ["#", ..input] if !in_string ->
       input
       |> list.drop_while(fn(g) { g != "\n" })
-      |> drop_comments(acc)
-    [g, ..input] -> drop_comments(input, [g, ..acc])
+      |> drop_comments(acc, in_string)
+    [g, ..input] -> drop_comments(input, [g, ..acc], in_string)
     [] -> list.reverse(acc)
   }
 }
