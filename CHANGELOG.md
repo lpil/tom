@@ -1,8 +1,10 @@
 # Changelog
 
-## v0.4.0 - Unreleased
+
+## v0.4.0 - 2024-05-04
 
 - Added support for `\e`, `\f`, `\b`.
+- Fixed a bug where strings with `#` in them would fail to parse.
 
 ## v0.3.0 - 2023-12-07
 
