@@ -1,7 +1,7 @@
 # Changelog
 
 
-## v0.4.0 - 2024-05-04
+## v1.0.0 - 2024-05-04
 
 - Added support for `\e`, `\f`, `\b`.
 - Fixed a bug where strings with `#` in them would fail to parse.
