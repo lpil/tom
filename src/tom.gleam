@@ -126,6 +126,7 @@ pub fn get(
     [k, ..key] -> {
       case dict.get(toml, k) {
         Ok(Table(t)) -> push_key(get(t, key), k)
+        Ok(InlineTable(t)) -> push_key(get(t, key), k)
         Ok(other) -> Error(WrongType([k], "Table", classify(other)))
         Error(_) -> Error(NotFound([k]))
       }
