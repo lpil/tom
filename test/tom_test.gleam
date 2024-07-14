@@ -1,4 +1,7 @@
 import gleam/dict
+import gleam/io
+import gleam/result
+import gleam/string
 import gleeunit
 import gleeunit/should
 import tom
@@ -422,10 +425,10 @@ pub fn parse_array_of_tables_nonempty_test() {
     ])
   "[[a]]
 a = 1
-  
+
 [[a]]
 a = 2
-  
+
 [[a]]
 a = 3
 "
@@ -927,4 +930,30 @@ pub fn parse_not_remove_hash_in_string_test() {
 field = \"#\""
   |> tom.parse
   |> should.equal(Ok(expected))
+}
+
+pub fn get_data_in_table_and_inline_table_test() {
+  let toml =
+    "section = { field = \"data\" }
+another_section = { another_field = \"another_data\", int_field = 2 }
+[still_a_section]
+still_a_field = 1"
+    |> tom.parse
+    |> io.debug
+  toml
+  |> result.is_ok
+  |> should.equal(True)
+  use toml <- result.map(toml)
+
+  tom.get(toml, ["section", "field"])
+  |> should.equal(Ok(tom.String("data")))
+
+  tom.get(toml, ["another_section", "another_field"])
+  |> should.equal(Ok(tom.String("another_data")))
+
+  tom.get(toml, ["another_section", "int_field"])
+  |> should.equal(Ok(tom.Int(2)))
+
+  tom.get(toml, ["still_a_section", "still_a_field"])
+  |> should.equal(Ok(tom.Int(1)))
 }
