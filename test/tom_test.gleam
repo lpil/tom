@@ -1,7 +1,5 @@
 import gleam/dict
-import gleam/io
 import gleam/result
-import gleam/string
 import gleeunit
 import gleeunit/should
 import tom
@@ -939,7 +937,6 @@ another_section = { another_field = \"another_data\", int_field = 2 }
 [still_a_section]
 still_a_field = 1"
     |> tom.parse
-    |> io.debug
   toml
   |> result.is_ok
   |> should.equal(True)

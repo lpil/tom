@@ -1,6 +1,6 @@
 # Changelog
 
-## v1.0.1 - 2024-07-14
+## v1.0.1 - 2024-07-15
 
 - Fixed a bug where `get` would not work in `InlineTable`.
 
