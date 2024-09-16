@@ -2,28 +2,29 @@
 ////
 //// ```gleam
 //// import tom
-//// 
+////
 //// const config = "
 ////   [person]
 ////   name = \"Lucy\"
 ////   is_cool = true
 //// "
-//// 
+////
 //// pub fn main() {
 ////   // Parse a string of TOML
 ////   let assert Ok(parsed) = tom.parse(config)
-//// 
+////
 ////   // Now you can work with the data directly, or you can use the `get_*`
 ////   // functions to retrieve values.
-//// 
+////
 ////   tom.get_string(parsed, ["person", "name"])
 ////   // -> Ok("Lucy")
-//// 
+////
 ////   let is_cool = tom.get_bool(parsed, ["person", "is_cool"])
 ////   // -> Ok(True)
 //// }
 //// ```
 
+import gleam/bool
 import gleam/dict.{type Dict}
 import gleam/float
 import gleam/int
@@ -109,7 +110,7 @@ pub type GetError {
 /// Get a value of any type from a TOML document.
 ///
 /// ## Examples
-/// 
+///
 /// ```gleam
 /// let assert Ok(parsed) = parse("a.b.c = 1")
 /// get(parsed, ["a", "b", "c"])
@@ -138,7 +139,7 @@ pub fn get(
 /// Get an int from a TOML document.
 ///
 /// ## Examples
-/// 
+///
 /// ```gleam
 /// let assert Ok(parsed) = parse("a.b.c = 1")
 /// get_int(parsed, ["a", "b", "c"])
@@ -160,7 +161,7 @@ pub fn get_int(
 /// Get a float from a TOML document.
 ///
 /// ## Examples
-/// 
+///
 /// ```gleam
 /// let assert Ok(parsed) = parse("a.b.c = 1.1")
 /// get_float(parsed, ["a", "b", "c"])
@@ -182,7 +183,7 @@ pub fn get_float(
 /// Get a bool from a TOML document.
 ///
 /// ## Examples
-/// 
+///
 /// ```gleam
 /// let assert Ok(parsed) = parse("a.b.c = true")
 /// get_bool(parsed, ["a", "b", "c"])
@@ -204,7 +205,7 @@ pub fn get_bool(
 /// Get a string from a TOML document.
 ///
 /// ## Examples
-/// 
+///
 /// ```gleam
 /// let assert Ok(parsed) = parse("a.b.c = \"ok\"")
 /// get_string(parsed, ["a", "b", "c"])
@@ -226,7 +227,7 @@ pub fn get_string(
 /// Get a date from a TOML document.
 ///
 /// ## Examples
-/// 
+///
 /// ```gleam
 /// let assert Ok(parsed) = parse("a.b.c = 1979-05-27")
 /// get_date(parsed, ["a", "b", "c"])
@@ -248,7 +249,7 @@ pub fn get_date(
 /// Get a time from a TOML document.
 ///
 /// ## Examples
-/// 
+///
 /// ```gleam
 /// let assert Ok(parsed) = parse("a.b.c = 07:32:00")
 /// get_time(parsed, ["a", "b", "c"])
@@ -270,7 +271,7 @@ pub fn get_time(
 /// Get a date-time from a TOML document.
 ///
 /// ## Examples
-/// 
+///
 /// ```gleam
 /// let assert Ok(parsed) = parse("a.b.c = 1979-05-27T07:32:00")
 /// get_date_time(parsed, ["a", "b", "c"])
@@ -292,7 +293,7 @@ pub fn get_date_time(
 /// Get an array from a TOML document.
 ///
 /// ## Examples
-/// 
+///
 /// ```gleam
 /// let assert Ok(parsed) = parse("a.b.c = [1, 2]")
 /// get_array(parsed, ["a", "b", "c"])
@@ -315,7 +316,7 @@ pub fn get_array(
 /// Get a table from a TOML document.
 ///
 /// ## Examples
-/// 
+///
 /// ```gleam
 /// let assert Ok(parsed) = parse("a.b.c = { d = 1 }")
 /// get_table(parsed, ["a", "b", "c"])
@@ -339,7 +340,7 @@ pub fn get_table(
 /// This could be an int, a float, a NaN, or an infinity.
 ///
 /// ## Examples
-/// 
+///
 /// ```gleam
 /// let assert Ok(parsed) = parse("a.b.c = { d = inf }")
 /// get_number(parsed, ["a", "b", "c"])
@@ -1327,4 +1328,108 @@ fn parse_offset(input: Tokens) -> Parsed(Offset) {
 fn parse_offset_hours(input: Tokens, sign: Sign) -> Parsed(Offset) {
   use #(hours, minutes), input <- do(parse_hour_minute(input))
   Ok(#(Offset(sign, hours, minutes), input))
+}
+
+pub fn serialize(toml_document: Dict(String, Toml)) -> String {
+  let fold_to_string = fn(acc, key, val) {
+    case val {
+      ArrayOfTables(_) -> acc <> "[[" <> key <> "]]" <> "\n"
+      Table(_) -> acc <> "[" <> key <> "]\n"
+      _ -> acc <> key <> " = "
+    }
+    <> value_to_string(val)
+    <> "\n"
+  }
+  toml_document
+  |> dict.fold("", fold_to_string)
+}
+
+/// Serialization
+pub fn value_to_string(val: Toml) -> String {
+  case val {
+    Float(value) -> value |> float.to_string
+    Int(value) -> value |> int.to_string
+    Infinity(sign) -> sign |> sign_to_string <> "inf"
+    Nan(sign) -> sign |> sign_to_string <> "nan"
+    Bool(value) -> value |> bool.to_string |> string.lowercase
+    String(value) -> "\"" <> value <> "\""
+    Date(value) -> date_to_string(value)
+    Time(value) -> time_to_string(value)
+    DateTime(value) -> date_time_to_string(value)
+    Array(list) -> array_to_string(list)
+    ArrayOfTables(list) -> table_array_to_string(list)
+    Table(table) -> table_to_string(table)
+    InlineTable(table) -> inline_table_to_string(table)
+  }
+}
+
+fn array_to_string(array: List(Toml)) -> String {
+  let joined =
+    array
+    |> list.map(value_to_string)
+    |> string.join(", ")
+  "[" <> joined <> "]"
+}
+
+fn sign_to_string(sign: Sign) -> String {
+  case sign {
+    Positive -> "+"
+    Negative -> "-"
+  }
+}
+
+fn table_array_to_string(table_array: List(Dict(String, Toml))) {
+  table_array
+  |> list.fold("", fn(acc, table) { acc <> table_to_string(table) })
+}
+
+fn table_to_string(table: Dict(String, Toml)) -> String {
+  let fold_to_string = fn(acc: String, key: String, value: Toml) {
+    case value {
+      Table(child_table) -> key <> "." <> table_to_string(child_table)
+      _ -> acc <> key <> " = " <> value |> value_to_string <> "\n"
+    }
+  }
+  table
+  |> dict.fold("", fold_to_string)
+}
+
+fn inline_table_to_string(table: Dict(String, Toml)) -> String {
+  let fold_to_string = fn(acc, key, value) {
+    acc <> key <> " = " <> value |> value_to_string <> ", "
+  }
+  table |> dict.fold("{ ", fold_to_string) <> "}"
+}
+
+fn date_to_string(date: Date) -> String {
+  [date.year, date.month, date.day]
+  |> list.map(int.to_string)
+  |> string.join("-")
+}
+
+fn time_to_string(time: Time) -> String {
+  let ms = int.to_string(time.millisecond)
+  [time.hour, time.minute, time.second]
+  |> list.map(int.to_string)
+  |> string.join(":")
+  <> "."
+  <> ms
+}
+
+fn date_time_to_string(date_time: DateTime) -> String {
+  let date = date_time.date |> date_to_string
+  let time = date_time.time |> time_to_string
+  let offset = date_time.offset |> offset_to_string
+  date <> " " <> time <> offset
+}
+
+fn offset_to_string(offset: Offset) -> String {
+  case offset {
+    Local -> ""
+    Offset(sign, hours, minutes) ->
+      sign_to_string(sign)
+      <> int.to_string(hours)
+      <> ":"
+      <> int.to_string(minutes)
+  }
 }
