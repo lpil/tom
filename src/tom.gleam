@@ -28,6 +28,7 @@ import gleam/bool
 import gleam/dict.{type Dict}
 import gleam/float
 import gleam/int
+import gleam/io
 import gleam/list
 import gleam/result
 import gleam/string
@@ -1330,21 +1331,10 @@ fn parse_offset_hours(input: Tokens, sign: Sign) -> Parsed(Offset) {
   Ok(#(Offset(sign, hours, minutes), input))
 }
 
-pub fn serialize(toml_document: Dict(String, Toml)) -> String {
-  let fold_to_string = fn(acc, key, val) {
-    case val {
-      ArrayOfTables(_) -> acc <> "[[" <> key <> "]]" <> "\n"
-      Table(_) -> acc <> "[" <> key <> "]\n"
-      _ -> acc <> key <> " = "
-    }
-    <> value_to_string(val)
-    <> "\n"
-  }
-  toml_document
-  |> dict.fold("", fold_to_string)
+pub fn serialize(value: Dict(String, Toml)) -> String {
+  value_to_string(Table(value))
 }
 
-/// Serialization
 pub fn value_to_string(val: Toml) -> String {
   case val {
     Float(value) -> value |> float.to_string
@@ -1363,7 +1353,7 @@ pub fn value_to_string(val: Toml) -> String {
   }
 }
 
-fn array_to_string(array: List(Toml)) -> String {
+pub fn array_to_string(array: List(Toml)) -> String {
   let joined =
     array
     |> list.map(value_to_string)
@@ -1384,14 +1374,23 @@ fn table_array_to_string(table_array: List(Dict(String, Toml))) {
 }
 
 fn table_to_string(table: Dict(String, Toml)) -> String {
-  let fold_to_string = fn(acc: String, key: String, value: Toml) {
-    case value {
-      Table(child_table) -> key <> "." <> table_to_string(child_table)
-      _ -> acc <> key <> " = " <> value |> value_to_string <> "\n"
-    }
-  }
   table
-  |> dict.fold("", fold_to_string)
+  |> dict.fold("", fold_table_to_string)
+}
+
+fn fold_table_to_string(acc: String, key: String, value: Toml) -> String {
+  case value {
+    Table(child_table) -> acc <> format_table(key, child_table)
+    _ -> acc <> key <> " = " <> value_to_string(value) <> "\n"
+  }
+}
+
+fn format_table(key: String, table: Dict(String, Toml)) -> String {
+  case dict.size(table) {
+    0 -> "[" <> key <> "]\n\n"
+    1 -> key <> "." <> table_to_string(table)
+    _ -> "[" <> key <> "]\n" <> table_to_string(table) <> "\n"
+  }
 }
 
 fn inline_table_to_string(table: Dict(String, Toml)) -> String {
