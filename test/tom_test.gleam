@@ -409,12 +409,13 @@ b.c = 2
 
 pub fn serialize_table_with_values_before_test() {
   let expected =
-    "[a]
+    "name = \"Joe\"
+size = 123
+
+[a]
 a = 1
 b.c = 2
 
-name = \"Joe\"
-size = 123
 "
   dict.from_list([
     #("name", tom.String("Joe")),
@@ -433,17 +434,47 @@ size = 123
   |> should.equal(expected)
 }
 
-pub fn serialize_multiple_tables_test() {
+pub fn parse_multiple_tables_test() {
   let expected =
-    "[a]
+    dict.from_list([
+      #("name", tom.String("Joe")),
+      #("size", tom.Int(123)),
+      #(
+        "a",
+        tom.Table(
+          dict.from_list([
+            #("a", tom.Int(1)),
+            #("b", tom.Table(dict.from_list([#("c", tom.Int(2))]))),
+          ]),
+        ),
+      ),
+      #("b", tom.Table(dict.from_list([#("a", tom.Int(1))]))),
+    ])
+  "name = \"Joe\"
+size = 123
+
+[a]
 a = 1
 b.c = 2
 
 [b]
 a = 1
+"
+  |> tom.parse
+  |> should.equal(Ok(expected))
+}
 
-name = \"Joe\"
+pub fn serialize_multiple_tables_test() {
+  let expected =
+    "name = \"Joe\"
 size = 123
+
+[a]
+a = 1
+b.c = 2
+
+[b]
+a = 1
 "
   dict.from_list([
     #("name", tom.String("Joe")),

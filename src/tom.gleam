@@ -1332,10 +1332,10 @@ fn parse_offset_hours(input: Tokens, sign: Sign) -> Parsed(Offset) {
 }
 
 pub fn serialize(value: Dict(String, Toml)) -> String {
-  value_to_string(Table(value))
+  serialize_root_table(value)
 }
 
-pub fn value_to_string(val: Toml) -> String {
+pub fn serialize_value(val: Toml) -> String {
   case val {
     Float(value) -> value |> float.to_string
     Int(value) -> value |> int.to_string
@@ -1348,12 +1348,19 @@ pub fn value_to_string(val: Toml) -> String {
     DateTime(value) -> date_time_to_string(value)
     Array(list) -> array_to_string(list)
     ArrayOfTables(list) -> table_array_to_string(list)
-    Table(table) -> table_to_string(table)
+    Table(table) -> serialize_table(table)
     InlineTable(table) -> inline_table_to_string(table)
   }
 }
 
-pub fn array_to_string(array: List(Toml)) -> String {
+fn serialize_table(table: Dict(String, Toml)) -> String {
+  let #(child_values, child_tables) = split_tables_dict(table)
+  let serialized_child_values = dict.fold(child_values, "", fold_values)
+  let serialized_table_values = dict.fold(child_tables, "", fold_child_tables)
+  todo
+}
+
+pub fn serialize_array(array: List(Toml)) -> String {
   let joined =
     array
     |> list.map(value_to_string)
@@ -1361,35 +1368,168 @@ pub fn array_to_string(array: List(Toml)) -> String {
   "[" <> joined <> "]"
 }
 
-fn sign_to_string(sign: Sign) -> String {
+fn serialize_sign(sign: Sign) -> String {
   case sign {
     Positive -> "+"
     Negative -> "-"
   }
 }
 
-fn table_array_to_string(table_array: List(Dict(String, Toml))) {
+fn serialize_table_array(table_array: List(Dict(String, Toml))) {
   table_array
-  |> list.fold("", fn(acc, table) { acc <> table_to_string(table) })
+  |> list.fold("", fn(acc, table) { acc <> table_to_string("", table) })
 }
 
-fn table_to_string(table: Dict(String, Toml)) -> String {
-  table
-  |> dict.fold("", fold_table_to_string)
-}
+// fn collapse_table(name: String, table: Dict(String, Toml)) -> String {
+// case name, dict.to_list(table) {
+// "", _ -> panic as "Error: Table has no name"
+// name, [] -> "[" <> name <> "]\n\n"
+// name, [#(child_name, Table(child_table))] ->
+// collapse_table(name <> "." <> child_name, child_table)
+// name, [#(child_name, value)] ->
+// name <> "." <> child_name <> " = " <> value_to_string(value) <> "\n"
+// name, children -> {
+// let #(children_values, children_tables) = split_tables(children)
+// let table_header = "[" <> name <> "]\n"
+// let serialized_values = list.fold(children_values, "", fold_values)
+// let serialized_tables = list.fold(children_tables, "", fold_child_tables)
+// table_header <> serialized_values <> serialized_tables
+// }
+// }
+// }
 
-fn fold_table_to_string(acc: String, key: String, value: Toml) -> String {
-  case value {
-    Table(child_table) -> acc <> format_table(key, child_table)
-    _ -> acc <> key <> " = " <> value_to_string(value) <> "\n"
+// fn table_to_string(name: String, table: Dict(String, Toml)) -> String {
+// let #(child_values, child_tables) = split_tables(dict.to_list(table))
+// let serialized_values =
+// child_values
+// |> list.map(fn(value) { #(name <> "." <> value.0, value.1) })
+// |> list.fold("", fold_values)
+// let serialized_tables =
+// child_tables
+// |> list.map(fn(value) { #(name <> "." <> value.0, value.1) })
+// |> list.fold("", fold_child_tables)
+// serialized_values <> serialized_tables <> "\n"
+// }
+
+fn serialize_root_table(table: Dict(String, Toml)) {
+  let #(child_values, child_tables) = split_tables(dict.to_list(table))
+  let child_values_serialized = list.fold(child_values, "", fold_values)
+  let child_tables_serialized = list.fold(child_tables, "", fold_root_tables)
+  case child_values_serialized, child_tables_serialized {
+    "\n", _ ->
+      panic as "Erroneous \n on child_values_serialized in serialize_root_tables"
+    _, "\n" ->
+      panic as "Erroneous \n on child_tables_serialized in serialize_root_table"
+    "", tables -> tables
+    values, "" -> values
+    values, tables -> values <> "\n" <> tables
   }
 }
 
-fn format_table(key: String, table: Dict(String, Toml)) -> String {
-  case dict.size(table) {
-    0 -> "[" <> key <> "]\n\n"
-    1 -> key <> "." <> table_to_string(table)
-    _ -> "[" <> key <> "]\n" <> table_to_string(table) <> "\n"
+fn fold_root_tables(acc, entry: #(String, Toml)) -> String {
+  case entry {
+    #("", _) -> panic as { "Error: Table has no name" }
+    #(name, Table(child)) -> {
+      let #(collapsed_name, collapsed_table) = collapse_table(name, child)
+      "[" <> collapsed_name <> "]\n" <> serialize_table(collapsed_table)
+    }
+    #(_, _) ->
+      panic as "Error: Unexpected non-table value. This is an issue with the Tom library."
+  }
+}
+
+
+
+fn fold_child_tables(acc: String, key: String, value: Toml) {
+  case key, value {
+    "", _ -> panic as "Table has no name"
+    child_name, Table(child) ->  {}
+    _, _ -> panic as "Unexpected non-table value"
+  }
+}
+
+fn collapse_table(
+  name: String,
+  table: Dict(String, Toml),
+) -> #(String, Dict(String, Toml)) {
+  case dict.to_list(table) {
+    [#(child_name, Table(child_table))] ->
+      collapse_table(name <> "." <> child_name, child_table)
+    _ -> #(name, table)
+  }
+}
+
+// fn collapse_table_to_values(
+//   table_name: String,
+//   table: Dict(String, Toml),
+// ) -> Dict(String, Toml) {
+//   let appended_name = case table_name {
+//     "" -> ""
+//     name -> name <> "."
+//   }
+//   table
+//   |> dict.fold(dict.from_list([]), fn(acc, key, value) {
+//     case value {
+//       Table(child) -> collapse_table_to_values(appended_name <> key, child)
+//       child_value -> dict.from_list([#(appended_name <> key, child_value)])
+//     }
+//   })
+// }
+
+// fn fold_child_tables(acc, entry: #(String, Toml)) -> String {
+  // case entry {
+    // #("", _) -> panic as { "Error: Table has no name" }
+    // #(name, Table(child)) -> acc <> table_to_string(name, child)
+    // #(_, _) ->
+      // panic as "Error: Unexpected non-table value. This is an issue with the Tom library."
+  // }
+// }
+
+fn fold_values(acc, k, v) -> String {
+  case k, v {
+    "", value ->
+      panic as {
+        "Error: Entry has no name, but value of " <> value_to_string(value)
+      }
+    name, value -> acc <> name <> " = " <> value_to_string(value) <> "\n"
+  }
+}
+
+fn split_tables(values: List(#(String, Toml))) {
+  #(list.filter(values, filter_values), list.filter(values, filter_tables))
+}
+
+fn split_tables_dict(
+  table: Dict(String, Toml),
+) -> #(Dict(String, Toml), Dict(String, Toml)) {
+  let values =
+    dict.filter(table, fn(k, v) {
+      case v {
+        Table(_) -> False
+        _ -> True
+      }
+    })
+  let tables =
+    dict.filter(table, fn(_, v) {
+      case v {
+        Table(_) -> True
+        _ -> False
+      }
+    })
+  #(values, tables)
+}
+
+fn filter_tables(value: #(String, Toml)) -> Bool {
+  case value.1 {
+    Table(_) -> True
+    _ -> False
+  }
+}
+
+fn filter_values(value: #(String, Toml)) -> Bool {
+  case value.1 {
+    Table(_) -> False
+    _ -> True
   }
 }
 
