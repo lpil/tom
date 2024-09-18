@@ -2,31 +2,33 @@
 ////
 //// ```gleam
 //// import tom
-//// 
+////
 //// const config = "
 ////   [person]
 ////   name = \"Lucy\"
 ////   is_cool = true
 //// "
-//// 
+////
 //// pub fn main() {
 ////   // Parse a string of TOML
 ////   let assert Ok(parsed) = tom.parse(config)
-//// 
+////
 ////   // Now you can work with the data directly, or you can use the `get_*`
 ////   // functions to retrieve values.
-//// 
+////
 ////   tom.get_string(parsed, ["person", "name"])
 ////   // -> Ok("Lucy")
-//// 
+////
 ////   let is_cool = tom.get_bool(parsed, ["person", "is_cool"])
 ////   // -> Ok(True)
 //// }
 //// ```
 
+import gleam/bool
 import gleam/dict.{type Dict}
 import gleam/float
 import gleam/int
+import gleam/io
 import gleam/list
 import gleam/result
 import gleam/string
@@ -109,7 +111,7 @@ pub type GetError {
 /// Get a value of any type from a TOML document.
 ///
 /// ## Examples
-/// 
+///
 /// ```gleam
 /// let assert Ok(parsed) = parse("a.b.c = 1")
 /// get(parsed, ["a", "b", "c"])
@@ -138,7 +140,7 @@ pub fn get(
 /// Get an int from a TOML document.
 ///
 /// ## Examples
-/// 
+///
 /// ```gleam
 /// let assert Ok(parsed) = parse("a.b.c = 1")
 /// get_int(parsed, ["a", "b", "c"])
@@ -160,7 +162,7 @@ pub fn get_int(
 /// Get a float from a TOML document.
 ///
 /// ## Examples
-/// 
+///
 /// ```gleam
 /// let assert Ok(parsed) = parse("a.b.c = 1.1")
 /// get_float(parsed, ["a", "b", "c"])
@@ -182,7 +184,7 @@ pub fn get_float(
 /// Get a bool from a TOML document.
 ///
 /// ## Examples
-/// 
+///
 /// ```gleam
 /// let assert Ok(parsed) = parse("a.b.c = true")
 /// get_bool(parsed, ["a", "b", "c"])
@@ -204,7 +206,7 @@ pub fn get_bool(
 /// Get a string from a TOML document.
 ///
 /// ## Examples
-/// 
+///
 /// ```gleam
 /// let assert Ok(parsed) = parse("a.b.c = \"ok\"")
 /// get_string(parsed, ["a", "b", "c"])
@@ -226,7 +228,7 @@ pub fn get_string(
 /// Get a date from a TOML document.
 ///
 /// ## Examples
-/// 
+///
 /// ```gleam
 /// let assert Ok(parsed) = parse("a.b.c = 1979-05-27")
 /// get_date(parsed, ["a", "b", "c"])
@@ -248,7 +250,7 @@ pub fn get_date(
 /// Get a time from a TOML document.
 ///
 /// ## Examples
-/// 
+///
 /// ```gleam
 /// let assert Ok(parsed) = parse("a.b.c = 07:32:00")
 /// get_time(parsed, ["a", "b", "c"])
@@ -270,7 +272,7 @@ pub fn get_time(
 /// Get a date-time from a TOML document.
 ///
 /// ## Examples
-/// 
+///
 /// ```gleam
 /// let assert Ok(parsed) = parse("a.b.c = 1979-05-27T07:32:00")
 /// get_date_time(parsed, ["a", "b", "c"])
@@ -292,7 +294,7 @@ pub fn get_date_time(
 /// Get an array from a TOML document.
 ///
 /// ## Examples
-/// 
+///
 /// ```gleam
 /// let assert Ok(parsed) = parse("a.b.c = [1, 2]")
 /// get_array(parsed, ["a", "b", "c"])
@@ -315,7 +317,7 @@ pub fn get_array(
 /// Get a table from a TOML document.
 ///
 /// ## Examples
-/// 
+///
 /// ```gleam
 /// let assert Ok(parsed) = parse("a.b.c = { d = 1 }")
 /// get_table(parsed, ["a", "b", "c"])
@@ -339,7 +341,7 @@ pub fn get_table(
 /// This could be an int, a float, a NaN, or an infinity.
 ///
 /// ## Examples
-/// 
+///
 /// ```gleam
 /// let assert Ok(parsed) = parse("a.b.c = { d = inf }")
 /// get_number(parsed, ["a", "b", "c"])
@@ -1327,4 +1329,191 @@ fn parse_offset(input: Tokens) -> Parsed(Offset) {
 fn parse_offset_hours(input: Tokens, sign: Sign) -> Parsed(Offset) {
   use #(hours, minutes), input <- do(parse_hour_minute(input))
   Ok(#(Offset(sign, hours, minutes), input))
+}
+
+pub fn serialize(value: Dict(String, Toml)) -> String {
+  serialize_root_table(value)
+}
+
+pub fn serialize_value(val: Toml) -> String {
+  case val {
+    Float(value) -> value |> float.to_string
+    Int(value) -> value |> int.to_string
+    Infinity(sign) -> sign |> serialize_sign <> "inf"
+    Nan(sign) -> sign |> serialize_sign <> "nan"
+    Bool(value) -> value |> bool.to_string |> string.lowercase
+    String(value) -> "\"" <> value <> "\""
+    Date(value) -> serialize_date(value)
+    Time(value) -> serialize_time(value)
+    DateTime(value) -> serialize_date_time(value)
+    Array(list) -> serialize_array(list)
+    ArrayOfTables(list) -> serialize_table_array(list)
+    Table(table) -> serialize_table(table)
+    InlineTable(table) -> serialize_inline_table(table)
+  }
+}
+
+fn serialize_root_table(table: Dict(String, Toml)) {
+  let #(child_values, child_tables) = split_tables(table)
+  let child_values_serialized = dict.fold(child_values, "", fold_values)
+  let child_tables_serialized = dict.fold(child_tables, "", fold_root_tables)
+  case child_values_serialized, child_tables_serialized {
+    "\n", _ ->
+      panic as "Erroneous \n on child_values_serialized in serialize_root_tables"
+    _, "\n" ->
+      panic as "Erroneous \n on child_tables_serialized in serialize_root_table"
+    "", tables -> tables
+    values, "" -> values
+    values, tables -> values <> "\n" <> tables
+  }
+}
+
+fn serialize_table(table: Dict(String, Toml)) -> String {
+  let #(child_values, child_tables) = split_tables(table)
+  let serialized_child_values = dict.fold(child_values, "", fold_values)
+  let serialized_table_values = dict.fold(child_tables, "", fold_child_tables)
+  serialized_child_values <> serialized_table_values
+}
+
+pub fn serialize_array(array: List(Toml)) -> String {
+  let joined =
+    array
+    |> list.map(serialize_value)
+    |> string.join(", ")
+  "[" <> joined <> "]"
+}
+
+fn serialize_sign(sign: Sign) -> String {
+  case sign {
+    Positive -> "+"
+    Negative -> "-"
+  }
+}
+
+fn serialize_table_array(table_array: List(Dict(String, Toml))) {
+  table_array
+  |> list.fold("", fn(acc, table) { acc <> serialize_table(table) })
+}
+
+fn serialize_inline_table(table: Dict(String, Toml)) -> String {
+  let fold_to_string = fn(acc, key, value) {
+    acc <> key <> "." <> value |> serialize_value <> ", "
+  }
+  table |> dict.fold("{", fold_to_string) <> "}"
+}
+
+fn serialize_date(date: Date) -> String {
+  [date.year, date.month, date.day]
+  |> list.map(int.to_string)
+  |> string.join("-")
+}
+
+fn serialize_time(time: Time) -> String {
+  let ms = int.to_string(time.millisecond)
+  [time.hour, time.minute, time.second]
+  |> list.map(int.to_string)
+  |> string.join(":")
+  <> "."
+  <> ms
+}
+
+fn serialize_date_time(date_time: DateTime) -> String {
+  let date = date_time.date |> serialize_date
+  let time = date_time.time |> serialize_time
+  let offset = date_time.offset |> serialize_offset
+  date <> " " <> time <> offset
+}
+
+fn serialize_offset(offset: Offset) -> String {
+  case offset {
+    Local -> ""
+    Offset(sign, hours, minutes) ->
+      serialize_sign(sign)
+      <> int.to_string(hours)
+      <> ":"
+      <> int.to_string(minutes)
+  }
+}
+
+fn fold_root_tables(acc, key, value) -> String {
+  case key, value {
+    "", _ -> panic as { "Error: Table has no name" }
+    name, Table(table) -> {
+      let #(collapsed_name, collapsed_table) = collapse_table(name, table)
+      io.debug(collapsed_name <> ":" <> serialize_table(collapsed_table))
+      case dict.to_list(collapsed_table) {
+        [] -> acc <> "[" <> collapsed_name <> "]\n\n"
+        [#(child_name, child_value)] ->
+          collapsed_name
+          <> "."
+          <> child_name
+          <> " = "
+          <> serialize_value(child_value)
+          <> "\n\n"
+          <> acc
+        _ ->
+          acc
+          <> "["
+          <> collapsed_name
+          <> "]\n"
+          <> serialize_table(collapsed_table)
+          <> "\n"
+      }
+    }
+    _, _ ->
+      panic as "Error: Unexpected non-table value. This is an issue with the Tom library."
+  }
+}
+
+fn fold_child_tables(acc: String, key: String, value: Toml) {
+  case key, value {
+    "", _ -> panic as "Table has no name"
+    child_name, Table(child_table) -> {
+      let #(collapsed_name, collapsed_table) =
+        collapse_table(child_name, child_table)
+      acc <> collapsed_name <> "." <> serialize_table(collapsed_table)
+    }
+    _, _ -> panic as "Unexpected non-table value"
+  }
+}
+
+fn fold_values(acc, k, v) -> String {
+  case k, v {
+    "", value ->
+      panic as {
+        "Error: Entry has no name, but value of " <> serialize_value(value)
+      }
+    name, value -> acc <> name <> " = " <> serialize_value(value) <> "\n"
+  }
+}
+
+fn collapse_table(
+  name: String,
+  table: Dict(String, Toml),
+) -> #(String, Dict(String, Toml)) {
+  case dict.to_list(table) {
+    [#(child_name, Table(child_table))] ->
+      collapse_table(name <> "." <> child_name, child_table)
+    _ -> #(name, table)
+  }
+}
+
+fn split_tables(
+  table: Dict(String, Toml),
+) -> #(Dict(String, Toml), Dict(String, Toml)) {
+  let values =
+    dict.filter(table, fn(k, v) {
+      case v {
+        Table(_) -> False
+        _ -> True
+      }
+    })
+  let tables =
+    dict.filter(table, fn(_, v) {
+      case v {
+        Table(_) -> True
+        _ -> False
+      }
+    })
+  #(values, tables)
 }
