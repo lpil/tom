@@ -219,7 +219,7 @@ pub fn parse_multi_segment_key_test() {
 }
 
 pub fn serialize_multi_segment_key_test() {
-  let expected = "one.two.three = true\n"
+  let expected = "one.two.three = true\n\n"
   dict.from_list([
     #(
       "one",
@@ -408,15 +408,7 @@ b.c = 2
 }
 
 pub fn serialize_table_with_values_before_test() {
-  let expected =
-    "name = \"Joe\"
-size = 123
-
-[a]
-a = 1
-b.c = 2
-
-"
+  let expected = "name = \"Joe\"\nsize = 123\n\n[a]\na = 1\nb.c = 2\n\n"
   dict.from_list([
     #("name", tom.String("Joe")),
     #("size", tom.Int(123)),
@@ -469,12 +461,12 @@ pub fn serialize_multiple_tables_test() {
     "name = \"Joe\"
 size = 123
 
+b.a = 1
+
 [a]
 a = 1
 b.c = 2
 
-[b]
-a = 1
 "
   dict.from_list([
     #("name", tom.String("Joe")),
@@ -501,6 +493,13 @@ pub fn parse_inline_table_empty_test() {
   |> should.equal(Ok(expected))
 }
 
+pub fn serialize_inline_table_empty_test() {
+  let expected = "a = {}\n"
+  dict.from_list([#("a", tom.InlineTable(dict.from_list([])))])
+  |> tom.serialize
+  |> should.equal(expected)
+}
+
 pub fn parse_inline_table_test() {
   let expected =
     dict.from_list([
@@ -521,6 +520,28 @@ pub fn parse_inline_table_test() {
 "
   |> tom.parse
   |> should.equal(Ok(expected))
+}
+
+pub fn serialize_inline_table_test() {
+  let expected =
+    "a = {
+  a = 1,
+  b.c = 2
+}
+"
+  dict.from_list([
+    #(
+      "a",
+      tom.InlineTable(
+        dict.from_list([
+          #("a", tom.Int(1)),
+          #("b", tom.Table(dict.from_list([#("c", tom.Int(2))]))),
+        ]),
+      ),
+    ),
+  ])
+  |> tom.serialize
+  |> should.equal(expected)
 }
 
 pub fn parse_inline_trailing_comma_table_test() {
@@ -1126,6 +1147,6 @@ still_a_field = 1"
 pub fn array_to_string_test() {
   let expected = "[123, true, \"test\"]"
   let content = [tom.Int(123), tom.Bool(True), tom.String("test")]
-  tom.array_to_string(content)
+  tom.serialize_array(content)
   |> should.equal(expected)
 }
