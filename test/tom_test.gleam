@@ -954,3 +954,101 @@ still_a_field = 1"
   tom.get(toml, ["still_a_section", "still_a_field"])
   |> should.equal(Ok(tom.Int(1)))
 }
+
+pub fn tom_as_int_test() {
+  tom.as_int(tom.Int(1))
+  |> should.equal(Ok(1))
+
+  tom.as_int(tom.Float(1.5))
+  |> should.equal(Error(tom.WrongType([], "Int", "Float")))
+}
+
+pub fn tom_as_float_test() {
+  tom.as_float(tom.Float(1.5))
+  |> should.equal(Ok(1.5))
+
+  tom.as_float(tom.Int(1))
+  |> should.equal(Error(tom.WrongType([], "Float", "Int")))
+}
+
+pub fn tom_as_bool_test() {
+  tom.as_bool(tom.Bool(True))
+  |> should.equal(Ok(True))
+
+  tom.as_bool(tom.Int(1))
+  |> should.equal(Error(tom.WrongType([], "Bool", "Int")))
+}
+
+pub fn tom_as_string_test() {
+  tom.as_string(tom.String("hello"))
+  |> should.equal(Ok("hello"))
+
+  tom.as_string(tom.Int(1))
+  |> should.equal(Error(tom.WrongType([], "String", "Int")))
+}
+
+pub fn tom_as_date_test() {
+  let date = tom.DateValue(2023, 09, 23)
+
+  tom.as_date(tom.Date(date))
+  |> should.equal(Ok(date))
+
+  tom.as_date(tom.Int(1))
+  |> should.equal(Error(tom.WrongType([], "Date", "Int")))
+}
+
+pub fn tom_as_time_test() {
+  let time = tom.TimeValue(12, 30, 0, 4)
+
+  tom.as_time(tom.Time(time))
+  |> should.equal(Ok(time))
+
+  tom.as_time(tom.Int(1))
+  |> should.equal(Error(tom.WrongType([], "Time", "Int")))
+}
+
+pub fn tom_as_date_time_test() {
+  let datetime =
+    tom.DateTimeValue(
+      tom.DateValue(2023, 09, 23),
+      tom.TimeValue(10, 30, 00, 00),
+      tom.Local,
+    )
+
+  tom.as_date_time(tom.DateTime(datetime))
+  |> should.equal(Ok(datetime))
+
+  tom.as_date_time(tom.Int(1))
+  |> should.equal(Error(tom.WrongType([], "DateTime", "Int")))
+}
+
+pub fn tom_as_array_test() {
+  let array = [tom.Int(1), tom.Int(2), tom.Int(3)]
+
+  tom.as_array(tom.Array(array))
+  |> should.equal(Ok(array))
+
+  tom.as_array(tom.Int(1))
+  |> should.equal(Error(tom.WrongType([], "Array", "Int")))
+}
+
+pub fn tom_as_table_test() {
+  let dict = dict.new()
+
+  tom.as_table(tom.Table(dict))
+  |> should.equal(Ok(dict))
+
+  tom.as_table(tom.Int(1))
+  |> should.equal(Error(tom.WrongType([], "Table", "Int")))
+}
+
+pub fn tom_as_number_test() {
+  tom.as_number(tom.Int(1))
+  |> should.equal(Ok(tom.NumberInt(1)))
+
+  tom.as_number(tom.Float(1.5))
+  |> should.equal(Ok(tom.NumberFloat(1.5)))
+
+  tom.as_number(tom.Bool(True))
+  |> should.equal(Error(tom.WrongType([], "Number", "Bool")))
+}

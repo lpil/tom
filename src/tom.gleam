@@ -96,7 +96,7 @@ pub type Number {
   NumberNan(Sign)
 }
 
-/// An error that can occur when retrieving a value from a TOML document with
+/// An error that can occur when retrieving a value from a TOML document dictionary with
 /// one of the `get_*` functions.
 pub type GetError {
   /// There was no value at the given key.
@@ -106,7 +106,7 @@ pub type GetError {
 }
 
 // TODO: test
-/// Get a value of any type from a TOML document.
+/// Get a value of any type from a TOML document dictionary.
 ///
 /// ## Examples
 /// 
@@ -135,7 +135,7 @@ pub fn get(
 }
 
 // TODO: test
-/// Get an int from a TOML document.
+/// Get an int from a TOML document dictionary.
 ///
 /// ## Examples
 /// 
@@ -157,7 +157,7 @@ pub fn get_int(
 }
 
 // TODO: test
-/// Get a float from a TOML document.
+/// Get a float from a TOML document dictionary.
 ///
 /// ## Examples
 /// 
@@ -179,7 +179,7 @@ pub fn get_float(
 }
 
 // TODO: test
-/// Get a bool from a TOML document.
+/// Get a bool from a TOML document dictionary.
 ///
 /// ## Examples
 /// 
@@ -201,7 +201,7 @@ pub fn get_bool(
 }
 
 // TODO: test
-/// Get a string from a TOML document.
+/// Get a string from a TOML document dictionary.
 ///
 /// ## Examples
 /// 
@@ -223,7 +223,7 @@ pub fn get_string(
 }
 
 // TODO: test
-/// Get a date from a TOML document.
+/// Get a date from a TOML document dictionary.
 ///
 /// ## Examples
 /// 
@@ -245,7 +245,7 @@ pub fn get_date(
 }
 
 // TODO: test
-/// Get a time from a TOML document.
+/// Get a time from a TOML document dictionary.
 ///
 /// ## Examples
 /// 
@@ -267,7 +267,7 @@ pub fn get_time(
 }
 
 // TODO: test
-/// Get a date-time from a TOML document.
+/// Get a date-time from a TOML document dictionary.
 ///
 /// ## Examples
 /// 
@@ -289,7 +289,7 @@ pub fn get_date_time(
 }
 
 // TODO: test
-/// Get an array from a TOML document.
+/// Get an array from a TOML document dictionary.
 ///
 /// ## Examples
 /// 
@@ -312,7 +312,7 @@ pub fn get_array(
 }
 
 // TODO: test
-/// Get a table from a TOML document.
+/// Get a table from a TOML document dictionary.
 ///
 /// ## Examples
 /// 
@@ -335,7 +335,7 @@ pub fn get_table(
 }
 
 // TODO: test
-/// Get a number of any kind from a TOML document.
+/// Get a number of any kind from a TOML document dictionary.
 /// This could be an int, a float, a NaN, or an infinity.
 ///
 /// ## Examples
@@ -1327,4 +1327,212 @@ fn parse_offset(input: Tokens) -> Parsed(Offset) {
 fn parse_offset_hours(input: Tokens, sign: Sign) -> Parsed(Offset) {
   use #(hours, minutes), input <- do(parse_hour_minute(input))
   Ok(#(Offset(sign, hours, minutes), input))
+}
+
+/// Get a int from a TOML document.
+///
+/// ## Examples
+///
+/// ```gleam
+/// as_int(Int(1))
+/// // -> Ok(1)
+/// ```
+///
+/// ```gleam
+/// as_int(Float(1.4))
+/// // -> Error(WrongType([], "Int", "Float"))
+/// ```
+pub fn as_int(toml: Toml) -> Result(Int, GetError) {
+  case toml {
+    Int(f) -> Ok(f)
+    other -> Error(WrongType([], "Int", classify(other)))
+  }
+}
+
+/// Get a float from a TOML document.
+///
+/// ## Examples
+///
+/// ```gleam
+/// as_float(Float(1.5))
+/// // -> Ok(1.5)
+/// ```
+///
+/// ```gleam
+/// as_float(Int(1))
+/// // -> Error(WrongType([], "Float", "Int"))
+/// ```
+pub fn as_float(toml: Toml) -> Result(Float, GetError) {
+  case toml {
+    Float(f) -> Ok(f)
+    other -> Error(WrongType([], "Float", classify(other)))
+  }
+}
+
+/// Get a bool from a TOML document.
+///
+/// ## Examples
+///
+/// ```gleam
+/// as_bool(Bool(true))
+/// // -> Ok(true)
+/// ```
+///
+/// ```gleam
+/// as_bool(Int(1))
+/// // -> Error(WrongType([], "Bool", "Int"))
+/// ```
+pub fn as_bool(toml: Toml) -> Result(Bool, GetError) {
+  case toml {
+    Bool(b) -> Ok(b)
+    other -> Error(WrongType([], "Bool", classify(other)))
+  }
+}
+
+/// Get a string from a TOML document.
+///
+/// ## Examples
+///
+/// ```gleam
+/// as_string(String("hello"))
+/// // -> Ok("hello")
+/// ```
+///
+/// ```gleam
+/// as_string(Int(1))
+/// // -> Error(WrongType([], "String", "Int"))
+/// ```
+pub fn as_string(toml: Toml) -> Result(String, GetError) {
+  case toml {
+    String(s) -> Ok(s)
+    other -> Error(WrongType([], "String", classify(other)))
+  }
+}
+
+/// Get a date from a TOML document.
+///
+/// ## Examples
+///
+/// ```gleam
+/// as_date(Date(date))
+/// // -> Ok(date)
+/// ```
+///
+/// ```gleam
+/// as_date(Int(1))
+/// // -> Error(WrongType([], "Date", "Int"))
+/// ```
+pub fn as_date(toml: Toml) -> Result(Date, GetError) {
+  case toml {
+    Date(d) -> Ok(d)
+    other -> Error(WrongType([], "Date", classify(other)))
+  }
+}
+
+/// Get a time from a TOML document.
+///
+/// ## Examples
+///
+/// ```gleam
+/// as_time(Time(time))
+/// // -> Ok(time)
+/// ```
+///
+/// ```gleam
+/// as_time(Int(1))
+/// // -> Error(WrongType([], "Time", "Int"))
+/// ```
+pub fn as_time(toml: Toml) -> Result(Time, GetError) {
+  case toml {
+    Time(t) -> Ok(t)
+    other -> Error(WrongType([], "Time", classify(other)))
+  }
+}
+
+/// Get a datetime from a TOML document.
+///
+/// ## Examples
+///
+/// ```gleam
+/// as_date_time(DateTime(datetime))
+/// // -> Ok(datetime)
+/// ```
+///
+/// ```gleam
+/// as_date_time(Int(1))
+/// // -> Error(WrongType([], "DateTime", "Int"))
+/// ```
+pub fn as_date_time(toml: Toml) -> Result(DateTime, GetError) {
+  case toml {
+    DateTime(dt) -> Ok(dt)
+    other -> Error(WrongType([], "DateTime", classify(other)))
+  }
+}
+
+/// Get an array from a TOML document.
+///
+/// ## Examples
+///
+/// ```gleam
+/// as_array(Array([]))
+/// // -> Ok([])
+/// ```
+///
+/// ```gleam
+/// as_array(Int(1))
+/// // -> Error(WrongType([], "Array", "Int"))
+/// ```
+pub fn as_array(toml: Toml) -> Result(List(Toml), GetError) {
+  case toml {
+    Array(arr) -> Ok(arr)
+    other -> Error(WrongType([], "Array", classify(other)))
+  }
+}
+
+/// Get a table from a TOML document.
+///
+/// ## Examples
+///
+/// ```gleam
+/// as_table(Table(dict.new()))
+/// // -> Ok(dict.new())
+/// ```
+///
+/// ```gleam
+/// as_table(Int(1))
+/// // -> Error(WrongType([], "Table", "Int"))
+/// ```
+pub fn as_table(toml: Toml) -> Result(Dict(String, Toml), GetError) {
+  case toml {
+    Table(tbl) -> Ok(tbl)
+    other -> Error(WrongType([], "Table", classify(other)))
+  }
+}
+
+/// Get a number (int or float) from a TOML document.
+///
+/// ## Examples
+///
+/// ```gleam
+/// as_number(Int(1))
+/// // -> Ok(NumberInt(1))
+/// ```
+///
+/// ```gleam
+/// as_number(Float(1.5))
+/// // -> Ok(NumberFloat(1.5))
+/// ```
+///
+/// ```gleam
+/// as_number(Bool(true))
+/// // -> Error(WrongType([], "Number", "Bool"))
+/// ```
+pub fn as_number(toml: Toml) -> Result(Number, GetError) {
+  case toml {
+    Int(x) -> Ok(NumberInt(x))
+    Float(x) -> Ok(NumberFloat(x))
+    Nan(x) -> Ok(NumberNan(x))
+    Infinity(x) -> Ok(NumberInfinity(x))
+    other -> Error(WrongType([], "Number", classify(other)))
+  }
 }

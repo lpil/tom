@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.1.0 - 2024-09-23
+
+- Added the `as_array`, `as_bool`, `as_date`, `as_date_time`, `as_float`,
+  `as_int`, `as_number`, `as_string`, `as_table`, and `as_time`,
+  functions.
+
 ## v1.0.1 - 2024-07-15
 
 - Fixed a bug where `get` would not work in `InlineTable`.
