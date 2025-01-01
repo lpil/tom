@@ -1505,6 +1505,7 @@ pub fn as_array(toml: Toml) -> Result(List(Toml), GetError) {
 pub fn as_table(toml: Toml) -> Result(Dict(String, Toml), GetError) {
   case toml {
     Table(tbl) -> Ok(tbl)
+    InlineTable(tbl) -> Ok(tbl)
     other -> Error(WrongType([], "Table", classify(other)))
   }
 }
