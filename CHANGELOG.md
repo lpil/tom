@@ -1,5 +1,9 @@
 # Changelog
 
+## next
+
+- Fixed bug where `InlineTable` could not be cast `as_table`.
+
 ## v1.1.0 - 2024-09-23
 
 - Added the `as_array`, `as_bool`, `as_date`, `as_date_time`, `as_float`,

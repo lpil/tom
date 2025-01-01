@@ -1038,6 +1038,9 @@ pub fn tom_as_table_test() {
   tom.as_table(tom.Table(dict))
   |> should.equal(Ok(dict))
 
+  tom.as_table(tom.InlineTable(dict))
+  |> should.equal(Ok(dict))
+
   tom.as_table(tom.Int(1))
   |> should.equal(Error(tom.WrongType([], "Table", "Int")))
 }
