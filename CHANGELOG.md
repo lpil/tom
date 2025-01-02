@@ -1,6 +1,6 @@
 # Changelog
 
-## next
+## v1.1.1 - 2025-01-02
 
 - Fixed bug where `InlineTable` could not be cast `as_table`.
 
