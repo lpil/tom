@@ -30,6 +30,7 @@ import gleam/int
 import gleam/list
 import gleam/result
 import gleam/string
+import gleam/time/calendar
 
 /// A TOML document.
 pub type Toml {
@@ -43,7 +44,7 @@ pub type Toml {
   Nan(Sign)
   Bool(Bool)
   String(String)
-  Date(Date)
+  Date(calendar.Date)
   Time(Time)
   DateTime(DateTime)
   Array(List(Toml))
@@ -53,11 +54,7 @@ pub type Toml {
 }
 
 pub type DateTime {
-  DateTimeValue(date: Date, time: Time, offset: Offset)
-}
-
-pub type Date {
-  DateValue(year: Int, month: Int, day: Int)
+  DateTimeValue(date: calendar.Date, time: Time, offset: Offset)
 }
 
 pub type Time {
@@ -236,7 +233,7 @@ pub fn get_string(
 pub fn get_date(
   toml: Dict(String, Toml),
   key: List(String),
-) -> Result(Date, GetError) {
+) -> Result(calendar.Date, GetError) {
   case get(toml, key) {
     Ok(Date(i)) -> Ok(i)
     Ok(other) -> Error(WrongType(key, "Date", classify(other)))
@@ -1240,25 +1237,29 @@ fn parse_number_under_60(input: Tokens, expected: String) -> Parsed(Int) {
 
 fn parse_date(input: Tokens, year: Int) -> Parsed(Toml) {
   case input {
-    ["0", "1", "-", ..input] -> parse_date_day(input, year, 1)
-    ["0", "2", "-", ..input] -> parse_date_day(input, year, 2)
-    ["0", "3", "-", ..input] -> parse_date_day(input, year, 3)
-    ["0", "4", "-", ..input] -> parse_date_day(input, year, 4)
-    ["0", "5", "-", ..input] -> parse_date_day(input, year, 5)
-    ["0", "6", "-", ..input] -> parse_date_day(input, year, 6)
-    ["0", "7", "-", ..input] -> parse_date_day(input, year, 7)
-    ["0", "8", "-", ..input] -> parse_date_day(input, year, 8)
-    ["0", "9", "-", ..input] -> parse_date_day(input, year, 9)
-    ["1", "0", "-", ..input] -> parse_date_day(input, year, 10)
-    ["1", "1", "-", ..input] -> parse_date_day(input, year, 11)
-    ["1", "2", "-", ..input] -> parse_date_day(input, year, 12)
+    ["0", "1", "-", ..input] -> parse_date_day(input, year, calendar.January)
+    ["0", "2", "-", ..input] -> parse_date_day(input, year, calendar.February)
+    ["0", "3", "-", ..input] -> parse_date_day(input, year, calendar.March)
+    ["0", "4", "-", ..input] -> parse_date_day(input, year, calendar.April)
+    ["0", "5", "-", ..input] -> parse_date_day(input, year, calendar.May)
+    ["0", "6", "-", ..input] -> parse_date_day(input, year, calendar.June)
+    ["0", "7", "-", ..input] -> parse_date_day(input, year, calendar.July)
+    ["0", "8", "-", ..input] -> parse_date_day(input, year, calendar.August)
+    ["0", "9", "-", ..input] -> parse_date_day(input, year, calendar.September)
+    ["1", "0", "-", ..input] -> parse_date_day(input, year, calendar.October)
+    ["1", "1", "-", ..input] -> parse_date_day(input, year, calendar.November)
+    ["1", "2", "-", ..input] -> parse_date_day(input, year, calendar.December)
 
     [g, ..] -> Error(Unexpected(g, "date month"))
     [] -> Error(Unexpected("EOF", "date month"))
   }
 }
 
-fn parse_date_day(input: Tokens, year: Int, month: Int) -> Parsed(Toml) {
+fn parse_date_day(
+  input: Tokens,
+  year: Int,
+  month: calendar.Month,
+) -> Parsed(Toml) {
   case input {
     ["0", "1", ..input] -> parse_date_end(input, year, month, 1)
     ["0", "2", ..input] -> parse_date_end(input, year, month, 2)
@@ -1300,10 +1301,10 @@ fn parse_date_day(input: Tokens, year: Int, month: Int) -> Parsed(Toml) {
 fn parse_date_end(
   input: Tokens,
   year: Int,
-  month: Int,
+  month: calendar.Month,
   day: Int,
 ) -> Parsed(Toml) {
-  let date = DateValue(year, month, day)
+  let date = calendar.Date(year, month, day)
   case input {
     [" ", ..input] | ["T", ..input] -> {
       use time, input <- do(parse_time_value(input))
@@ -1422,7 +1423,7 @@ pub fn as_string(toml: Toml) -> Result(String, GetError) {
 /// as_date(Int(1))
 /// // -> Error(WrongType([], "Date", "Int"))
 /// ```
-pub fn as_date(toml: Toml) -> Result(Date, GetError) {
+pub fn as_date(toml: Toml) -> Result(calendar.Date, GetError) {
   case toml {
     Date(d) -> Ok(d)
     other -> Error(WrongType([], "Date", classify(other)))

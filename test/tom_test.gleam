@@ -1,5 +1,6 @@
 import gleam/dict
 import gleam/result
+import gleam/time/calendar
 import gleeunit
 import gleeunit/should
 import tom
@@ -730,7 +731,8 @@ pub fn parse_float_decimal_and_exponent_negative_test() {
 }
 
 pub fn parse_date_test() {
-  let expected = dict.from_list([#("a", tom.Date(tom.DateValue(1979, 5, 27)))])
+  let expected =
+    dict.from_list([#("a", tom.Date(calendar.Date(1979, calendar.May, 27)))])
   "a = 1979-05-27\n"
   |> tom.parse
   |> should.equal(Ok(expected))
@@ -779,7 +781,7 @@ pub fn parse_date_time_test() {
       #(
         "a",
         tom.DateTime(tom.DateTimeValue(
-          tom.DateValue(1979, 5, 27),
+          calendar.Date(1979, calendar.May, 27),
           tom.TimeValue(7, 32, 0, 0),
           offset: tom.Local,
         )),
@@ -796,7 +798,7 @@ pub fn parse_date_time_space_test() {
       #(
         "a",
         tom.DateTime(tom.DateTimeValue(
-          tom.DateValue(1979, 5, 27),
+          calendar.Date(1979, calendar.May, 27),
           tom.TimeValue(7, 0, 1, 0),
           offset: tom.Local,
         )),
@@ -813,7 +815,7 @@ pub fn parse_offset_z_date_time_test() {
       #(
         "a",
         tom.DateTime(tom.DateTimeValue(
-          tom.DateValue(1979, 5, 27),
+          calendar.Date(1979, calendar.May, 27),
           tom.TimeValue(7, 32, 0, 0),
           offset: tom.Offset(tom.Positive, 0, 0),
         )),
@@ -830,7 +832,7 @@ pub fn parse_offset_z_date_time_space_test() {
       #(
         "a",
         tom.DateTime(tom.DateTimeValue(
-          tom.DateValue(1979, 5, 27),
+          calendar.Date(1979, calendar.May, 27),
           tom.TimeValue(7, 0, 1, 0),
           offset: tom.Offset(tom.Positive, 0, 0),
         )),
@@ -847,7 +849,7 @@ pub fn parse_offset_positive_date_time_space_test() {
       #(
         "a",
         tom.DateTime(tom.DateTimeValue(
-          tom.DateValue(1979, 5, 27),
+          calendar.Date(1979, calendar.May, 27),
           tom.TimeValue(7, 0, 1, 0),
           offset: tom.Offset(tom.Positive, 7, 40),
         )),
@@ -864,7 +866,7 @@ pub fn parse_offset_negative_date_time_space_test() {
       #(
         "a",
         tom.DateTime(tom.DateTimeValue(
-          tom.DateValue(1979, 5, 27),
+          calendar.Date(1979, calendar.May, 27),
           tom.TimeValue(7, 0, 1, 0),
           offset: tom.Offset(tom.Negative, 7, 1),
         )),
@@ -988,7 +990,7 @@ pub fn tom_as_string_test() {
 }
 
 pub fn tom_as_date_test() {
-  let date = tom.DateValue(2023, 09, 23)
+  let date = calendar.Date(2023, calendar.September, 23)
 
   tom.as_date(tom.Date(date))
   |> should.equal(Ok(date))
@@ -1010,7 +1012,7 @@ pub fn tom_as_time_test() {
 pub fn tom_as_date_time_test() {
   let datetime =
     tom.DateTimeValue(
-      tom.DateValue(2023, 09, 23),
+      calendar.Date(2023, calendar.September, 23),
       tom.TimeValue(10, 30, 00, 00),
       tom.Local,
     )
