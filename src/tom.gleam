@@ -45,7 +45,7 @@ pub type Toml {
   Bool(Bool)
   String(String)
   Date(calendar.Date)
-  Time(Time)
+  Time(calendar.TimeOfDay)
   DateTime(DateTime)
   Array(List(Toml))
   ArrayOfTables(List(Dict(String, Toml)))
@@ -54,11 +54,7 @@ pub type Toml {
 }
 
 pub type DateTime {
-  DateTimeValue(date: calendar.Date, time: Time, offset: Offset)
-}
-
-pub type Time {
-  TimeValue(hour: Int, minute: Int, second: Int, millisecond: Int)
+  DateTimeValue(date: calendar.Date, time: calendar.TimeOfDay, offset: Offset)
 }
 
 pub type Offset {
@@ -255,7 +251,7 @@ pub fn get_date(
 pub fn get_time(
   toml: Dict(String, Toml),
   key: List(String),
-) -> Result(Time, GetError) {
+) -> Result(calendar.TimeOfDay, GetError) {
   case get(toml, key) {
     Ok(Time(i)) -> Ok(i)
     Ok(other) -> Error(WrongType(key, "Time", classify(other)))
@@ -1089,8 +1085,8 @@ fn reverse_arrays_of_tables_array(
 
 fn parse_time_minute(input: Tokens, hours: Int) -> Parsed(Toml) {
   use minutes, input <- do(parse_number_under_60(input, "minutes"))
-  use #(seconds, ms), input <- do(parse_time_s_ms(input))
-  let time = TimeValue(hours, minutes, seconds, ms)
+  use #(seconds, ns), input <- do(parse_time_s_ns(input))
+  let time = calendar.TimeOfDay(hours, minutes, seconds, ns)
   Ok(#(Time(time), input))
 }
 
@@ -1128,19 +1124,19 @@ fn parse_hour_minute(input: Tokens) -> Parsed(#(Int, Int)) {
   Ok(#(#(hours, minutes), input))
 }
 
-fn parse_time_value(input: Tokens) -> Parsed(Time) {
+fn parse_time_value(input: Tokens) -> Parsed(calendar.TimeOfDay) {
   use #(hours, minutes), input <- do(parse_hour_minute(input))
-  use #(seconds, ms), input <- do(parse_time_s_ms(input))
-  let time = TimeValue(hours, minutes, seconds, ms)
+  use #(seconds, ns), input <- do(parse_time_s_ns(input))
+  let time = calendar.TimeOfDay(hours, minutes, seconds, ns)
   Ok(#(time, input))
 }
 
-fn parse_time_s_ms(input: Tokens) -> Parsed(#(Int, Int)) {
+fn parse_time_s_ns(input: Tokens) -> Parsed(#(Int, Int)) {
   case input {
     [":", ..input] -> {
       use seconds, input <- do(parse_number_under_60(input, "seconds"))
       case input {
-        [".", ..input] -> parse_time_ms(input, seconds, 0)
+        [".", ..input] -> parse_time_ns(input, seconds, 0, 0)
         _ -> Ok(#(#(seconds, 0), input))
       }
     }
@@ -1149,21 +1145,40 @@ fn parse_time_s_ms(input: Tokens) -> Parsed(#(Int, Int)) {
   }
 }
 
-fn parse_time_ms(input: Tokens, seconds: Int, ms: Int) -> Parsed(#(Int, Int)) {
+fn parse_time_ns(
+  input: Tokens,
+  seconds: Int,
+  ns: Int,
+  digits_count: Int,
+) -> Parsed(#(Int, Int)) {
   case input {
-    ["0", ..input] if ms < 100_000 -> parse_time_ms(input, seconds, ms * 10 + 0)
-    ["1", ..input] if ms < 100_000 -> parse_time_ms(input, seconds, ms * 10 + 1)
-    ["2", ..input] if ms < 100_000 -> parse_time_ms(input, seconds, ms * 10 + 2)
-    ["3", ..input] if ms < 100_000 -> parse_time_ms(input, seconds, ms * 10 + 3)
-    ["4", ..input] if ms < 100_000 -> parse_time_ms(input, seconds, ms * 10 + 4)
-    ["5", ..input] if ms < 100_000 -> parse_time_ms(input, seconds, ms * 10 + 5)
-    ["6", ..input] if ms < 100_000 -> parse_time_ms(input, seconds, ms * 10 + 6)
-    ["7", ..input] if ms < 100_000 -> parse_time_ms(input, seconds, ms * 10 + 7)
-    ["8", ..input] if ms < 100_000 -> parse_time_ms(input, seconds, ms * 10 + 8)
-    ["9", ..input] if ms < 100_000 -> parse_time_ms(input, seconds, ms * 10 + 9)
+    ["0", ..input] if digits_count < 9 ->
+      parse_time_ns(input, seconds, ns * 10 + 0, digits_count + 1)
+    ["1", ..input] if digits_count < 9 ->
+      parse_time_ns(input, seconds, ns * 10 + 1, digits_count + 1)
+    ["2", ..input] if digits_count < 9 ->
+      parse_time_ns(input, seconds, ns * 10 + 2, digits_count + 1)
+    ["3", ..input] if digits_count < 9 ->
+      parse_time_ns(input, seconds, ns * 10 + 3, digits_count + 1)
+    ["4", ..input] if digits_count < 9 ->
+      parse_time_ns(input, seconds, ns * 10 + 4, digits_count + 1)
+    ["5", ..input] if digits_count < 9 ->
+      parse_time_ns(input, seconds, ns * 10 + 5, digits_count + 1)
+    ["6", ..input] if digits_count < 9 ->
+      parse_time_ns(input, seconds, ns * 10 + 6, digits_count + 1)
+    ["7", ..input] if digits_count < 9 ->
+      parse_time_ns(input, seconds, ns * 10 + 7, digits_count + 1)
+    ["8", ..input] if digits_count < 9 ->
+      parse_time_ns(input, seconds, ns * 10 + 8, digits_count + 1)
+    ["9", ..input] if digits_count < 9 ->
+      parse_time_ns(input, seconds, ns * 10 + 9, digits_count + 1)
 
     // Anything else and the number is terminated
-    _ -> Ok(#(#(seconds, ms), input))
+    _ -> {
+      let exponent = int.to_float(9 - digits_count)
+      let assert Ok(multiplier) = float.power(10.0, exponent)
+      Ok(#(#(seconds, ns * float.truncate(multiplier)), input))
+    }
   }
 }
 
@@ -1443,7 +1458,7 @@ pub fn as_date(toml: Toml) -> Result(calendar.Date, GetError) {
 /// as_time(Int(1))
 /// // -> Error(WrongType([], "Time", "Int"))
 /// ```
-pub fn as_time(toml: Toml) -> Result(Time, GetError) {
+pub fn as_time(toml: Toml) -> Result(calendar.TimeOfDay, GetError) {
   case toml {
     Time(t) -> Ok(t)
     other -> Error(WrongType([], "Time", classify(other)))

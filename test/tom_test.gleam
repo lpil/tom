@@ -1,4 +1,5 @@
 import gleam/dict
+import gleam/list
 import gleam/result
 import gleam/time/calendar
 import gleeunit
@@ -739,37 +740,44 @@ pub fn parse_date_test() {
 }
 
 pub fn parse_time_test() {
-  let expected = dict.from_list([#("a", tom.Time(tom.TimeValue(7, 32, 1, 0)))])
+  let expected =
+    dict.from_list([#("a", tom.Time(calendar.TimeOfDay(7, 32, 1, 0)))])
   "a = 07:32:01\n"
   |> tom.parse
   |> should.equal(Ok(expected))
 }
 
 pub fn parse_time_zero_minute_test() {
-  let expected = dict.from_list([#("a", tom.Time(tom.TimeValue(7, 0, 1, 0)))])
+  let expected =
+    dict.from_list([#("a", tom.Time(calendar.TimeOfDay(7, 0, 1, 0)))])
   "a = 07:00:01\n"
   |> tom.parse
   |> should.equal(Ok(expected))
 }
 
-pub fn parse_time_milliseconds_test() {
-  let expected =
-    dict.from_list([#("a", tom.Time(tom.TimeValue(7, 32, 1, 999_999)))])
-  "a = 07:32:01.999999\n"
-  |> tom.parse
-  |> should.equal(Ok(expected))
-}
+pub fn parse_time_nanoseconds_test() {
+  let test_cases = [
+    #("999999", 999_999_000),
+    #("09179", 91_790_000),
+    #("123456789", 123_456_789),
+    #("1", 100_000_000),
+    #("001", 1_000_000),
+    #("000000789", 789),
+  ]
 
-pub fn parse_time_milliseconds_1_test() {
+  use test_case <- list.each(test_cases)
+  let #(input, nanoseconds) = test_case
   let expected =
-    dict.from_list([#("a", tom.Time(tom.TimeValue(7, 32, 1, 9179)))])
-  "a = 07:32:01.09179\n"
+    dict.from_list([#("a", tom.Time(calendar.TimeOfDay(7, 32, 1, nanoseconds)))])
+
+  { "a = 07:32:01." <> input <> "\n" }
   |> tom.parse
   |> should.equal(Ok(expected))
 }
 
 pub fn parse_time_no_seconds_test() {
-  let expected = dict.from_list([#("a", tom.Time(tom.TimeValue(7, 32, 0, 0)))])
+  let expected =
+    dict.from_list([#("a", tom.Time(calendar.TimeOfDay(7, 32, 0, 0)))])
   "a = 07:32\n"
   |> tom.parse
   |> should.equal(Ok(expected))
@@ -782,7 +790,7 @@ pub fn parse_date_time_test() {
         "a",
         tom.DateTime(tom.DateTimeValue(
           calendar.Date(1979, calendar.May, 27),
-          tom.TimeValue(7, 32, 0, 0),
+          calendar.TimeOfDay(7, 32, 0, 0),
           offset: tom.Local,
         )),
       ),
@@ -799,7 +807,7 @@ pub fn parse_date_time_space_test() {
         "a",
         tom.DateTime(tom.DateTimeValue(
           calendar.Date(1979, calendar.May, 27),
-          tom.TimeValue(7, 0, 1, 0),
+          calendar.TimeOfDay(7, 0, 1, 0),
           offset: tom.Local,
         )),
       ),
@@ -816,7 +824,7 @@ pub fn parse_offset_z_date_time_test() {
         "a",
         tom.DateTime(tom.DateTimeValue(
           calendar.Date(1979, calendar.May, 27),
-          tom.TimeValue(7, 32, 0, 0),
+          calendar.TimeOfDay(7, 32, 0, 0),
           offset: tom.Offset(tom.Positive, 0, 0),
         )),
       ),
@@ -833,7 +841,7 @@ pub fn parse_offset_z_date_time_space_test() {
         "a",
         tom.DateTime(tom.DateTimeValue(
           calendar.Date(1979, calendar.May, 27),
-          tom.TimeValue(7, 0, 1, 0),
+          calendar.TimeOfDay(7, 0, 1, 0),
           offset: tom.Offset(tom.Positive, 0, 0),
         )),
       ),
@@ -850,7 +858,7 @@ pub fn parse_offset_positive_date_time_space_test() {
         "a",
         tom.DateTime(tom.DateTimeValue(
           calendar.Date(1979, calendar.May, 27),
-          tom.TimeValue(7, 0, 1, 0),
+          calendar.TimeOfDay(7, 0, 1, 0),
           offset: tom.Offset(tom.Positive, 7, 40),
         )),
       ),
@@ -867,7 +875,7 @@ pub fn parse_offset_negative_date_time_space_test() {
         "a",
         tom.DateTime(tom.DateTimeValue(
           calendar.Date(1979, calendar.May, 27),
-          tom.TimeValue(7, 0, 1, 0),
+          calendar.TimeOfDay(7, 0, 1, 0),
           offset: tom.Offset(tom.Negative, 7, 1),
         )),
       ),
@@ -1000,7 +1008,7 @@ pub fn tom_as_date_test() {
 }
 
 pub fn tom_as_time_test() {
-  let time = tom.TimeValue(12, 30, 0, 4)
+  let time = calendar.TimeOfDay(12, 30, 0, 4_000_000)
 
   tom.as_time(tom.Time(time))
   |> should.equal(Ok(time))
@@ -1013,7 +1021,7 @@ pub fn tom_as_date_time_test() {
   let datetime =
     tom.DateTimeValue(
       calendar.Date(2023, calendar.September, 23),
-      tom.TimeValue(10, 30, 00, 00),
+      calendar.TimeOfDay(10, 30, 00, 00),
       tom.Local,
     )
 
