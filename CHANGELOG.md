@@ -1,5 +1,12 @@
 # Changelog
 
+## v2.0.0 - 2025-05-20
+
+- `Date` type was replaced with [calendar.Date](https://hexdocs.pm/gleam_time/gleam/time/calendar.html#Date).
+- `Time` type was replaced with [calendar.TimeOfDay](https://hexdocs.pm/gleam_time/gleam/time/calendar.html#TimeOfDay).
+- `DateTime` type was replaced with [timestamp.Timestamp](https://hexdocs.pm/gleam_time/gleam/time/timestamp.html#Timestamp).
+- time parser was adjusted to accommodate up to nanosecond precision.
+
 ## v1.1.1 - 2025-01-02
 
 - Fixed bug where `InlineTable` could not be cast `as_table`.
