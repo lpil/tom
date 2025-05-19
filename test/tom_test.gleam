@@ -2,6 +2,8 @@ import gleam/dict
 import gleam/list
 import gleam/result
 import gleam/time/calendar
+import gleam/time/duration
+import gleam/time/timestamp
 import gleeunit
 import gleeunit/should
 import tom
@@ -788,10 +790,10 @@ pub fn parse_date_time_test() {
     dict.from_list([
       #(
         "a",
-        tom.DateTime(tom.DateTimeValue(
+        tom.DateTime(timestamp.from_calendar(
           calendar.Date(1979, calendar.May, 27),
           calendar.TimeOfDay(7, 32, 0, 0),
-          offset: tom.Local,
+          offset: calendar.local_offset(),
         )),
       ),
     ])
@@ -805,10 +807,10 @@ pub fn parse_date_time_space_test() {
     dict.from_list([
       #(
         "a",
-        tom.DateTime(tom.DateTimeValue(
+        tom.DateTime(timestamp.from_calendar(
           calendar.Date(1979, calendar.May, 27),
           calendar.TimeOfDay(7, 0, 1, 0),
-          offset: tom.Local,
+          offset: calendar.local_offset(),
         )),
       ),
     ])
@@ -822,10 +824,10 @@ pub fn parse_offset_z_date_time_test() {
     dict.from_list([
       #(
         "a",
-        tom.DateTime(tom.DateTimeValue(
+        tom.DateTime(timestamp.from_calendar(
           calendar.Date(1979, calendar.May, 27),
           calendar.TimeOfDay(7, 32, 0, 0),
-          offset: tom.Offset(tom.Positive, 0, 0),
+          offset: calendar.utc_offset,
         )),
       ),
     ])
@@ -839,10 +841,10 @@ pub fn parse_offset_z_date_time_space_test() {
     dict.from_list([
       #(
         "a",
-        tom.DateTime(tom.DateTimeValue(
+        tom.DateTime(timestamp.from_calendar(
           calendar.Date(1979, calendar.May, 27),
           calendar.TimeOfDay(7, 0, 1, 0),
-          offset: tom.Offset(tom.Positive, 0, 0),
+          offset: calendar.utc_offset,
         )),
       ),
     ])
@@ -856,10 +858,10 @@ pub fn parse_offset_positive_date_time_space_test() {
     dict.from_list([
       #(
         "a",
-        tom.DateTime(tom.DateTimeValue(
+        tom.DateTime(timestamp.from_calendar(
           calendar.Date(1979, calendar.May, 27),
           calendar.TimeOfDay(7, 0, 1, 0),
-          offset: tom.Offset(tom.Positive, 7, 40),
+          offset: duration.add(duration.hours(7), duration.minutes(40)),
         )),
       ),
     ])
@@ -873,10 +875,10 @@ pub fn parse_offset_negative_date_time_space_test() {
     dict.from_list([
       #(
         "a",
-        tom.DateTime(tom.DateTimeValue(
+        tom.DateTime(timestamp.from_calendar(
           calendar.Date(1979, calendar.May, 27),
           calendar.TimeOfDay(7, 0, 1, 0),
-          offset: tom.Offset(tom.Negative, 7, 1),
+          offset: duration.add(duration.hours(-7), duration.minutes(-1)),
         )),
       ),
     ])
@@ -1019,10 +1021,10 @@ pub fn tom_as_time_test() {
 
 pub fn tom_as_date_time_test() {
   let datetime =
-    tom.DateTimeValue(
+    timestamp.from_calendar(
       calendar.Date(2023, calendar.September, 23),
       calendar.TimeOfDay(10, 30, 00, 00),
-      tom.Local,
+      calendar.local_offset(),
     )
 
   tom.as_date_time(tom.DateTime(datetime))

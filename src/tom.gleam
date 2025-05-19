@@ -31,6 +31,8 @@ import gleam/list
 import gleam/result
 import gleam/string
 import gleam/time/calendar
+import gleam/time/duration
+import gleam/time/timestamp
 
 /// A TOML document.
 pub type Toml {
@@ -46,20 +48,11 @@ pub type Toml {
   String(String)
   Date(calendar.Date)
   Time(calendar.TimeOfDay)
-  DateTime(DateTime)
+  DateTime(timestamp.Timestamp)
   Array(List(Toml))
   ArrayOfTables(List(Dict(String, Toml)))
   Table(Dict(String, Toml))
   InlineTable(Dict(String, Toml))
-}
-
-pub type DateTime {
-  DateTimeValue(date: calendar.Date, time: calendar.TimeOfDay, offset: Offset)
-}
-
-pub type Offset {
-  Local
-  Offset(direction: Sign, hours: Int, minutes: Int)
 }
 
 pub type Sign {
@@ -273,7 +266,7 @@ pub fn get_time(
 pub fn get_date_time(
   toml: Dict(String, Toml),
   key: List(String),
-) -> Result(DateTime, GetError) {
+) -> Result(timestamp.Timestamp, GetError) {
   case get(toml, key) {
     Ok(DateTime(i)) -> Ok(i)
     Ok(other) -> Error(WrongType(key, "DateTime", classify(other)))
@@ -1324,25 +1317,29 @@ fn parse_date_end(
     [" ", ..input] | ["T", ..input] -> {
       use time, input <- do(parse_time_value(input))
       use offset, input <- do(parse_offset(input))
-      Ok(#(DateTime(DateTimeValue(date, time, offset)), input))
+      Ok(#(DateTime(timestamp.from_calendar(date, time, offset)), input))
     }
 
     _ -> Ok(#(Date(date), input))
   }
 }
 
-fn parse_offset(input: Tokens) -> Parsed(Offset) {
+fn parse_offset(input: Tokens) -> Parsed(duration.Duration) {
   case input {
-    ["Z", ..input] -> Ok(#(Offset(Positive, 0, 0), input))
+    ["Z", ..input] -> Ok(#(calendar.utc_offset, input))
     ["+", ..input] -> parse_offset_hours(input, Positive)
     ["-", ..input] -> parse_offset_hours(input, Negative)
-    _ -> Ok(#(Local, input))
+    _ -> Ok(#(calendar.local_offset(), input))
   }
 }
 
-fn parse_offset_hours(input: Tokens, sign: Sign) -> Parsed(Offset) {
+fn parse_offset_hours(input: Tokens, sign: Sign) -> Parsed(duration.Duration) {
   use #(hours, minutes), input <- do(parse_hour_minute(input))
-  Ok(#(Offset(sign, hours, minutes), input))
+  let offset = case sign {
+    Positive -> duration.add(duration.hours(hours), duration.minutes(minutes))
+    Negative -> duration.add(duration.hours(-hours), duration.minutes(-minutes))
+  }
+  Ok(#(offset, input))
 }
 
 /// Get a int from a TOML document.
@@ -1478,7 +1475,7 @@ pub fn as_time(toml: Toml) -> Result(calendar.TimeOfDay, GetError) {
 /// as_date_time(Int(1))
 /// // -> Error(WrongType([], "DateTime", "Int"))
 /// ```
-pub fn as_date_time(toml: Toml) -> Result(DateTime, GetError) {
+pub fn as_date_time(toml: Toml) -> Result(timestamp.Timestamp, GetError) {
   case toml {
     DateTime(dt) -> Ok(dt)
     other -> Error(WrongType([], "DateTime", classify(other)))
