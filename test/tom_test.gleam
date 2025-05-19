@@ -1067,3 +1067,31 @@ pub fn tom_as_number_test() {
   tom.as_number(tom.Bool(True))
   |> should.equal(Error(tom.WrongType([], "Number", "Bool")))
 }
+
+pub fn get_date_test() {
+  let assert Ok(parsed) = tom.parse("a.b.c = 1979-05-27")
+
+  tom.get_date(parsed, ["a", "b", "c"])
+  |> should.equal(Ok(calendar.Date(1979, calendar.May, 27)))
+
+  tom.get_time(parsed, ["a", "b", "c"])
+  |> should.equal(Error(tom.WrongType(["a", "b", "c"], "Time", "Date")))
+}
+
+pub fn get_time_test() {
+  let assert Ok(parsed) = tom.parse("a.b.c = 07:32:00")
+
+  tom.get_time(parsed, ["a", "b", "c"])
+  |> should.equal(Ok(calendar.TimeOfDay(7, 32, 0, 0)))
+
+  tom.get_time(parsed, ["foo"])
+  |> should.equal(Error(tom.NotFound(["foo"])))
+}
+
+pub fn get_date_time_test() {
+  let assert Ok(parsed) = tom.parse("a.b.c = 1979-05-27T07:32:00Z")
+  let assert Ok(expected) = timestamp.parse_rfc3339("1979-05-27T07:32:00Z")
+
+  tom.get_date_time(parsed, ["a", "b", "c"])
+  |> should.equal(Ok(expected))
+}

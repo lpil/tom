@@ -208,7 +208,6 @@ pub fn get_string(
   }
 }
 
-// TODO: test
 /// Get a date from a TOML document dictionary.
 ///
 /// ## Examples
@@ -216,7 +215,7 @@ pub fn get_string(
 /// ```gleam
 /// let assert Ok(parsed) = parse("a.b.c = 1979-05-27")
 /// get_date(parsed, ["a", "b", "c"])
-/// // -> Ok("1979-05-27")
+/// // -> Ok(Date(1979, May, 27))
 /// ```
 ///
 pub fn get_date(
@@ -230,7 +229,6 @@ pub fn get_date(
   }
 }
 
-// TODO: test
 /// Get a time from a TOML document dictionary.
 ///
 /// ## Examples
@@ -238,7 +236,7 @@ pub fn get_date(
 /// ```gleam
 /// let assert Ok(parsed) = parse("a.b.c = 07:32:00")
 /// get_time(parsed, ["a", "b", "c"])
-/// // -> Ok("07:32:00")
+/// // -> Ok(TimeOfDay(7, 32, 0, 0))
 /// ```
 ///
 pub fn get_time(
@@ -252,7 +250,6 @@ pub fn get_time(
   }
 }
 
-// TODO: test
 /// Get a date-time from a TOML document dictionary.
 ///
 /// ## Examples
@@ -260,7 +257,7 @@ pub fn get_time(
 /// ```gleam
 /// let assert Ok(parsed) = parse("a.b.c = 1979-05-27T07:32:00")
 /// get_date_time(parsed, ["a", "b", "c"])
-/// // -> Ok("1979-05-27T07:32:00")
+/// // -> Ok(Timestamp(296638320, 0))
 /// ```
 ///
 pub fn get_date_time(
