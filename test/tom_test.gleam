@@ -1,5 +1,4 @@
 import gleam/dict
-import gleam/list
 import gleam/result
 import gleam/time/calendar
 import gleam/time/duration
@@ -757,22 +756,50 @@ pub fn parse_time_zero_minute_test() {
   |> should.equal(Ok(expected))
 }
 
-pub fn parse_time_nanoseconds_test() {
-  let test_cases = [
-    #("999999", 999_999_000),
-    #("09179", 91_790_000),
-    #("123456789", 123_456_789),
-    #("1", 100_000_000),
-    #("001", 1_000_000),
-    #("000000789", 789),
-  ]
-
-  use test_case <- list.each(test_cases)
-  let #(input, nanoseconds) = test_case
+pub fn parse_time_nanoseconds_999999_test() {
   let expected =
-    dict.from_list([#("a", tom.Time(calendar.TimeOfDay(7, 32, 1, nanoseconds)))])
+    dict.from_list([#("a", tom.Time(calendar.TimeOfDay(7, 32, 1, 999_999_000)))])
+  "a = 07:32:01.999999\n"
+  |> tom.parse
+  |> should.equal(Ok(expected))
+}
 
-  { "a = 07:32:01." <> input <> "\n" }
+pub fn parse_time_nanoseconds_09179_test() {
+  let expected =
+    dict.from_list([#("a", tom.Time(calendar.TimeOfDay(7, 32, 1, 91_790_000)))])
+  "a = 07:32:01.09179\n"
+  |> tom.parse
+  |> should.equal(Ok(expected))
+}
+
+pub fn parse_time_nanoseconds_123456789_test() {
+  let expected =
+    dict.from_list([#("a", tom.Time(calendar.TimeOfDay(7, 32, 1, 123_456_789)))])
+  "a = 07:32:01.123456789\n"
+  |> tom.parse
+  |> should.equal(Ok(expected))
+}
+
+pub fn parse_time_nanoseconds_1_test() {
+  let expected =
+    dict.from_list([#("a", tom.Time(calendar.TimeOfDay(7, 32, 1, 100_000_000)))])
+  "a = 07:32:01.1\n"
+  |> tom.parse
+  |> should.equal(Ok(expected))
+}
+
+pub fn parse_time_nanoseconds_001_test() {
+  let expected =
+    dict.from_list([#("a", tom.Time(calendar.TimeOfDay(7, 32, 1, 1_000_000)))])
+  "a = 07:32:01.001\n"
+  |> tom.parse
+  |> should.equal(Ok(expected))
+}
+
+pub fn parse_time_nanoseconds_000000789_test() {
+  let expected =
+    dict.from_list([#("a", tom.Time(calendar.TimeOfDay(7, 32, 1, 789)))])
+  "a = 07:32:01.000000789\n"
   |> tom.parse
   |> should.equal(Ok(expected))
 }
