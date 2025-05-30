@@ -1,11 +1,15 @@
 # Changelog
 
-## v2.0.0 - 2025-05-20
+## v2.0.0 - 2025-06-01
 
-- `Date` type was replaced with [calendar.Date](https://hexdocs.pm/gleam_time/gleam/time/calendar.html#Date).
-- `Time` type was replaced with [calendar.TimeOfDay](https://hexdocs.pm/gleam_time/gleam/time/calendar.html#TimeOfDay).
-- `DateTime` type was replaced with [timestamp.Timestamp](https://hexdocs.pm/gleam_time/gleam/time/timestamp.html#Timestamp).
-- time parser was adjusted to accommodate up to nanosecond precision.
+- Added [gleam_time](https://hexdocs.pm/gleam_time/index.html) as a dependency.
+- Replaced the custom `Date` type with [calendar.Date](https://hexdocs.pm/gleam_time/gleam/time/calendar.html#Date).
+- Replaced the custom `Time` type with [calendar.TimeOfDay](https://hexdocs.pm/gleam_time/gleam/time/calendar.html#TimeOfDay).
+- Reworked the `Offset` record to hold [duration.Duration](https://hexdocs.pm/gleam_time/gleam/time/duration.html#Duration).
+- Updated the `DateTime` type to incorporate the new `Date`, `Time`, and `Offset`.
+- Updated the time parser to support nanosecond precision.
+
+[View diff on Hex](https://diff.hex.pm/diff/tom/1.1.1..2.0.0)
 
 ## v1.1.1 - 2025-01-02
 
