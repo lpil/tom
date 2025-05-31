@@ -2,6 +2,7 @@ import gleam/dict
 import gleam/result
 import gleam/time/calendar
 import gleam/time/duration
+import gleam/time/timestamp
 import gleeunit
 import gleeunit/should
 import tom
@@ -816,11 +817,11 @@ pub fn parse_date_time_test() {
     dict.from_list([
       #(
         "a",
-        tom.DateTime(tom.DateTimeValue(
+        tom.DateTime(
           calendar.Date(1979, calendar.May, 27),
           calendar.TimeOfDay(7, 32, 0, 0),
           offset: tom.Local,
-        )),
+        ),
       ),
     ])
   "a = 1979-05-27T07:32:00\n"
@@ -833,11 +834,11 @@ pub fn parse_date_time_space_test() {
     dict.from_list([
       #(
         "a",
-        tom.DateTime(tom.DateTimeValue(
+        tom.DateTime(
           calendar.Date(1979, calendar.May, 27),
           calendar.TimeOfDay(7, 0, 1, 0),
           offset: tom.Local,
-        )),
+        ),
       ),
     ])
   "a = 1979-05-27 07:00:01\n"
@@ -850,11 +851,11 @@ pub fn parse_offset_z_date_time_test() {
     dict.from_list([
       #(
         "a",
-        tom.DateTime(tom.DateTimeValue(
+        tom.DateTime(
           calendar.Date(1979, calendar.May, 27),
           calendar.TimeOfDay(7, 32, 0, 0),
           offset: tom.Offset(calendar.utc_offset),
-        )),
+        ),
       ),
     ])
   "a = 1979-05-27T07:32:00Z\n"
@@ -867,11 +868,11 @@ pub fn parse_offset_z_date_time_space_test() {
     dict.from_list([
       #(
         "a",
-        tom.DateTime(tom.DateTimeValue(
+        tom.DateTime(
           calendar.Date(1979, calendar.May, 27),
           calendar.TimeOfDay(7, 0, 1, 0),
           offset: tom.Offset(calendar.utc_offset),
-        )),
+        ),
       ),
     ])
   "a = 1979-05-27 07:00:01Z\n"
@@ -884,14 +885,14 @@ pub fn parse_offset_positive_date_time_space_test() {
     dict.from_list([
       #(
         "a",
-        tom.DateTime(tom.DateTimeValue(
+        tom.DateTime(
           calendar.Date(1979, calendar.May, 27),
           calendar.TimeOfDay(7, 0, 1, 0),
           offset: tom.Offset(duration.add(
             duration.hours(7),
             duration.minutes(40),
           )),
-        )),
+        ),
       ),
     ])
   "a = 1979-05-27 07:00:01+07:40\n"
@@ -904,14 +905,14 @@ pub fn parse_offset_negative_date_time_space_test() {
     dict.from_list([
       #(
         "a",
-        tom.DateTime(tom.DateTimeValue(
+        tom.DateTime(
           calendar.Date(1979, calendar.May, 27),
           calendar.TimeOfDay(7, 0, 1, 0),
           offset: tom.Offset(duration.add(
             duration.hours(-7),
             duration.minutes(-1),
           )),
-        )),
+        ),
       ),
     ])
   "a = 1979-05-27 07:00:01-07:01\n"
@@ -1041,29 +1042,44 @@ pub fn tom_as_date_test() {
   |> should.equal(Error(tom.WrongType([], "Date", "Int")))
 }
 
-pub fn tom_as_time_test() {
+pub fn tom_as_time_of_day_test() {
   let time = calendar.TimeOfDay(12, 30, 0, 4_000_000)
 
-  tom.as_time(tom.Time(time))
+  tom.as_time_of_day(tom.Time(time))
   |> should.equal(Ok(time))
 
-  tom.as_time(tom.Int(1))
+  tom.as_time_of_day(tom.Int(1))
   |> should.equal(Error(tom.WrongType([], "Time", "Int")))
 }
 
-pub fn tom_as_date_time_test() {
-  let datetime =
-    tom.DateTimeValue(
-      calendar.Date(2023, calendar.September, 23),
-      calendar.TimeOfDay(10, 30, 00, 00),
-      tom.Local,
-    )
+pub fn tom_as_calendar_time_test() {
+  let date = calendar.Date(2023, calendar.September, 23)
+  let time_of_day = calendar.TimeOfDay(10, 30, 00, 00)
+  let offset = tom.Local
 
-  tom.as_date_time(tom.DateTime(datetime))
-  |> should.equal(Ok(datetime))
+  tom.as_calendar_time(tom.DateTime(date, time_of_day, offset))
+  |> should.equal(Ok(#(date, time_of_day, offset)))
 
-  tom.as_date_time(tom.Int(1))
+  tom.as_calendar_time(tom.Int(1))
   |> should.equal(Error(tom.WrongType([], "DateTime", "Int")))
+}
+
+pub fn tom_as_timestamp_test() {
+  let date = calendar.Date(1970, calendar.January, 1)
+  let time_of_day = calendar.TimeOfDay(0, 0, 00, 00)
+
+  tom.as_timestamp(tom.Int(1))
+  |> should.equal(Error(tom.WrongType([], "DateTime with offset", "Int")))
+
+  tom.as_timestamp(tom.DateTime(date, time_of_day, tom.Local))
+  |> should.equal(Error(tom.WrongType([], "DateTime with offset", "DateTime")))
+
+  tom.as_timestamp(tom.DateTime(
+    date,
+    time_of_day,
+    tom.Offset(duration.seconds(0)),
+  ))
+  |> should.equal(Ok(timestamp.from_unix_seconds(0)))
 }
 
 pub fn tom_as_array_test() {
@@ -1106,29 +1122,44 @@ pub fn get_date_test() {
   tom.get_date(parsed, ["a", "b", "c"])
   |> should.equal(Ok(calendar.Date(1979, calendar.May, 27)))
 
-  tom.get_time(parsed, ["a", "b", "c"])
+  tom.get_time_of_day(parsed, ["a", "b", "c"])
   |> should.equal(Error(tom.WrongType(["a", "b", "c"], "Time", "Date")))
 }
 
-pub fn get_time_test() {
+pub fn get_time_of_day_test() {
   let assert Ok(parsed) = tom.parse("a.b.c = 07:32:00")
 
-  tom.get_time(parsed, ["a", "b", "c"])
+  tom.get_time_of_day(parsed, ["a", "b", "c"])
   |> should.equal(Ok(calendar.TimeOfDay(7, 32, 0, 0)))
 
-  tom.get_time(parsed, ["foo"])
+  tom.get_time_of_day(parsed, ["foo"])
   |> should.equal(Error(tom.NotFound(["foo"])))
 }
 
-pub fn get_date_time_test() {
+pub fn get_calendar_time_test() {
   let assert Ok(parsed) = tom.parse("a.b.c = 1979-05-27T07:32:00Z")
-  let expected =
-    tom.DateTimeValue(
-      calendar.Date(1979, calendar.May, 27),
-      calendar.TimeOfDay(7, 32, 0, 0),
-      offset: tom.Offset(calendar.utc_offset),
-    )
+  let expected = #(
+    calendar.Date(1979, calendar.May, 27),
+    calendar.TimeOfDay(7, 32, 0, 0),
+    tom.Offset(calendar.utc_offset),
+  )
 
-  tom.get_date_time(parsed, ["a", "b", "c"])
+  tom.get_calendar_time(parsed, ["a", "b", "c"])
   |> should.equal(Ok(expected))
+}
+
+pub fn get_timestamp_test() {
+  let assert Ok(parsed) = tom.parse("a.b.c = 1970-01-01T00:00:00Z")
+  tom.get_timestamp(parsed, ["a", "b", "c"])
+  |> should.equal(Ok(timestamp.from_unix_seconds(0)))
+
+  let assert Ok(parsed) = tom.parse("a.b.c = 1970-01-01T00:00:00")
+  tom.get_timestamp(parsed, ["a", "b", "c"])
+  |> should.equal(
+    Error(tom.WrongType(["a", "b", "c"], "DateTime with offset", "DateTime")),
+  )
+
+  let assert Ok(parsed) = tom.parse("a = 1")
+  tom.get_timestamp(parsed, ["a", "b", "c"])
+  |> should.equal(Error(tom.WrongType(["a"], "Table", "Int")))
 }
