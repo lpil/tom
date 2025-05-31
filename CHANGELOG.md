@@ -1,13 +1,22 @@
 # Changelog
 
-## v2.0.0 - 2025-06-01
+## v2.0.0 - 2025-05-31
 
 - Added [gleam_time](https://hexdocs.pm/gleam_time/index.html) as a dependency.
-- Replaced the custom `Date` type with [calendar.Date](https://hexdocs.pm/gleam_time/gleam/time/calendar.html#Date).
-- Replaced the custom `Time` type with [calendar.TimeOfDay](https://hexdocs.pm/gleam_time/gleam/time/calendar.html#TimeOfDay).
-- Reworked the `Offset` record to hold [duration.Duration](https://hexdocs.pm/gleam_time/gleam/time/duration.html#Duration).
-- Updated the `DateTime` type to incorporate the new `Date`, `Time`, and `Offset`.
+- Replaced the custom `Date` type with
+  [calendar.Date](https://hexdocs.pm/gleam_time/gleam/time/calendar.html#Date).
+- Replaced the custom `Time` type with
+  [calendar.TimeOfDay](https://hexdocs.pm/gleam_time/gleam/time/calendar.html#TimeOfDay).
+- Reworked the `Offset` record to hold
+  [duration.Duration](https://hexdocs.pm/gleam_time/gleam/time/duration.html#Duration).
+- The `DateTime` type has been removed.
 - Updated the time parser to support nanosecond precision.
+- Added `as_timestamp`.
+- Added `get_timestamp`.
+- Renamed `as_date_time` to `as_calendar_time`.
+- Renamed `as_time` to `as_time_of_day`.
+- Renamed `get_date_time` to `get_calendar_time`.
+- Renamed `get_time` to `get_time_of_day`.
 
 [View diff on Hex](https://diff.hex.pm/diff/tom/1.1.1..2.0.0)
 

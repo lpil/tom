@@ -32,6 +32,7 @@ import gleam/result
 import gleam/string
 import gleam/time/calendar
 import gleam/time/duration
+import gleam/time/timestamp
 
 /// A TOML document.
 pub type Toml {
@@ -47,15 +48,11 @@ pub type Toml {
   String(String)
   Date(calendar.Date)
   Time(calendar.TimeOfDay)
-  DateTime(DateTime)
+  DateTime(date: calendar.Date, time: calendar.TimeOfDay, offset: Offset)
   Array(List(Toml))
   ArrayOfTables(List(Dict(String, Toml)))
   Table(Dict(String, Toml))
   InlineTable(Dict(String, Toml))
-}
-
-pub type DateTime {
-  DateTimeValue(date: calendar.Date, time: calendar.TimeOfDay, offset: Offset)
 }
 
 pub type Offset {
@@ -243,11 +240,11 @@ pub fn get_date(
 /// 
 /// ```gleam
 /// let assert Ok(parsed) = parse("a.b.c = 07:32:00")
-/// get_time(parsed, ["a", "b", "c"])
+/// get_time_of_day(parsed, ["a", "b", "c"])
 /// // -> Ok(TimeOfDay(7, 32, 0, 0))
 /// ```
 ///
-pub fn get_time(
+pub fn get_time_of_day(
   toml: Dict(String, Toml),
   key: List(String),
 ) -> Result(calendar.TimeOfDay, GetError) {
@@ -264,17 +261,43 @@ pub fn get_time(
 /// 
 /// ```gleam
 /// let assert Ok(parsed) = parse("a.b.c = 1979-05-27T07:32:00")
-/// get_date_time(parsed, ["a", "b", "c"])
-/// // -> Ok(DateTimeValue(Date(1979, May, 27), TimeOfDay(7, 32, 0, 0), Local))
+/// get_calendar_time(parsed, ["a", "b", "c"])
+/// // -> Ok(#(Date(1979, May, 27), TimeOfDay(7, 32, 0, 0), Local))
 /// ```
 ///
-pub fn get_date_time(
+pub fn get_calendar_time(
   toml: Dict(String, Toml),
   key: List(String),
-) -> Result(DateTime, GetError) {
+) -> Result(#(calendar.Date, calendar.TimeOfDay, Offset), GetError) {
   case get(toml, key) {
-    Ok(DateTime(i)) -> Ok(i)
+    Ok(DateTime(d, t, o)) -> Ok(#(d, t, o))
     Ok(other) -> Error(WrongType(key, "DateTime", classify(other)))
+    Error(e) -> Error(e)
+  }
+}
+
+/// Get an unambiguous time from a TOML document dictionary.
+///
+/// If a TOML date time has no offset it is ambiguous and cannot be converted
+/// into a timestamp. There's no way to know what actual point in time it would
+/// be as it would be different in different time zones.
+///
+/// ## Examples
+/// 
+/// ```gleam
+/// let assert Ok(parsed) = parse("a.b.c = 1970-00-00T00:00:00Z")
+/// get_timestamp(parsed, ["a", "b", "c"])
+/// // -> Ok(timestamp.from_unix_seconds(0))
+/// ```
+///
+pub fn get_timestamp(
+  toml: Dict(String, Toml),
+  key: List(String),
+) -> Result(timestamp.Timestamp, GetError) {
+  case get(toml, key) {
+    Ok(DateTime(date:, time:, offset: Offset(offset))) ->
+      Ok(timestamp.from_calendar(date, time, offset))
+    Ok(other) -> Error(WrongType(key, "DateTime with offset", classify(other)))
     Error(e) -> Error(e)
   }
 }
@@ -363,7 +386,7 @@ fn classify(toml: Toml) -> String {
     String(_) -> "String"
     Date(_) -> "Date"
     Time(_) -> "Time"
-    DateTime(_) -> "DateTime"
+    DateTime(_, _, _) -> "DateTime"
     Array(_) -> "Array"
     ArrayOfTables(_) -> "Array"
     Table(_) -> "Table"
@@ -1322,7 +1345,7 @@ fn parse_date_end(
     [" ", ..input] | ["T", ..input] -> {
       use time, input <- do(parse_time_value(input))
       use offset, input <- do(parse_offset(input))
-      Ok(#(DateTime(DateTimeValue(date, time, offset)), input))
+      Ok(#(DateTime(date, time, offset), input))
     }
 
     _ -> Ok(#(Date(date), input))
@@ -1452,18 +1475,35 @@ pub fn as_date(toml: Toml) -> Result(calendar.Date, GetError) {
 /// ## Examples
 ///
 /// ```gleam
-/// as_time(Time(time))
+/// as_time_of_day(Time(time))
 /// // -> Ok(time)
 /// ```
 ///
 /// ```gleam
-/// as_time(Int(1))
+/// as_time_of_day(Int(1))
 /// // -> Error(WrongType([], "Time", "Int"))
 /// ```
-pub fn as_time(toml: Toml) -> Result(calendar.TimeOfDay, GetError) {
+pub fn as_time_of_day(toml: Toml) -> Result(calendar.TimeOfDay, GetError) {
   case toml {
     Time(t) -> Ok(t)
     other -> Error(WrongType([], "Time", classify(other)))
+  }
+}
+
+/// Get an unambiguous time from a TOML document.
+///
+/// ## Examples
+///
+/// ```gleam
+/// as_timestamp(Int(1))
+/// // -> Error(WrongType([], "DateTime with offset", "Int"))
+/// ```
+pub fn as_timestamp(toml: Toml) -> Result(timestamp.Timestamp, GetError) {
+  case toml {
+    DateTime(date:, time:, offset: Offset(offset)) ->
+      Ok(timestamp.from_calendar(date, time, offset))
+
+    other -> Error(WrongType([], "DateTime with offset", classify(other)))
   }
 }
 
@@ -1472,17 +1512,19 @@ pub fn as_time(toml: Toml) -> Result(calendar.TimeOfDay, GetError) {
 /// ## Examples
 ///
 /// ```gleam
-/// as_date_time(DateTime(datetime))
+/// as_calendar_time(DateTime(datetime))
 /// // -> Ok(datetime)
 /// ```
 ///
 /// ```gleam
-/// as_date_time(Int(1))
+/// as_calendar_time(Int(1))
 /// // -> Error(WrongType([], "DateTime", "Int"))
 /// ```
-pub fn as_date_time(toml: Toml) -> Result(DateTime, GetError) {
+pub fn as_calendar_time(
+  toml: Toml,
+) -> Result(#(calendar.Date, calendar.TimeOfDay, Offset), GetError) {
   case toml {
-    DateTime(dt) -> Ok(dt)
+    DateTime(d, t, o) -> Ok(#(d, t, o))
     other -> Error(WrongType([], "DateTime", classify(other)))
   }
 }
