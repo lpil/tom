@@ -1,5 +1,10 @@
 import gleam/dict
+import gleam/dynamic/decode
+import gleam/int
+import gleam/list
+import gleam/order
 import gleam/result
+import gleam/string
 import gleam/time/calendar
 import gleam/time/duration
 import gleam/time/timestamp
@@ -1181,4 +1186,287 @@ pub fn get_timestamp_test() {
   let assert Ok(parsed) = tom.parse("a = 1")
   tom.get_timestamp(parsed, ["a", "b", "c"])
   |> should.equal(Error(tom.WrongType(["a"], "Table", "Int")))
+}
+
+pub fn to_dynamic_integer_test() {
+  let assert Ok(parsed) = tom.parse("a = 5")
+  let dynamic = tom.to_dynamic(parsed)
+  let decoder = {
+    use a_field <- decode.field("a", decode.int)
+    decode.success(a_field)
+  }
+  assert decode.run(dynamic, decoder) == Ok(5)
+}
+
+pub fn to_dynamic_nan_test() {
+  let assert Ok(parsed) = tom.parse("a = nan")
+  let dynamic = tom.to_dynamic(parsed)
+  let decoder = {
+    use a <- decode.field("a", tom.number_decoder())
+    decode.success(a)
+  }
+  assert decode.run(dynamic, decoder) == Ok(tom.NumberNan(tom.Positive))
+}
+
+pub fn to_dynamic_nan_positive_test() {
+  let assert Ok(parsed) = tom.parse("a = +nan")
+  let dynamic = tom.to_dynamic(parsed)
+  let decoder = {
+    use a <- decode.field("a", tom.number_decoder())
+    decode.success(a)
+  }
+  assert decode.run(dynamic, decoder) == Ok(tom.NumberNan(tom.Positive))
+}
+
+pub fn to_dynamic_nan_negative_test() {
+  let assert Ok(parsed) = tom.parse("a = -nan")
+  let dynamic = tom.to_dynamic(parsed)
+  let decoder = {
+    use a <- decode.field("a", tom.number_decoder())
+    decode.success(a)
+  }
+  assert decode.run(dynamic, decoder) == Ok(tom.NumberNan(tom.Negative))
+}
+
+pub fn to_dynamic_infinity_test() {
+  let assert Ok(parsed) = tom.parse("a = inf")
+  let dynamic = tom.to_dynamic(parsed)
+  let decoder = {
+    use a <- decode.field("a", tom.number_decoder())
+    decode.success(a)
+  }
+  assert decode.run(dynamic, decoder) == Ok(tom.NumberInfinity(tom.Positive))
+}
+
+pub fn to_dynamic_infinity_positive_test() {
+  let assert Ok(parsed) = tom.parse("a = +inf")
+  let dynamic = tom.to_dynamic(parsed)
+  let decoder = {
+    use a <- decode.field("a", tom.number_decoder())
+    decode.success(a)
+  }
+  assert decode.run(dynamic, decoder) == Ok(tom.NumberInfinity(tom.Positive))
+}
+
+pub fn to_dynamic_infinity_negative_test() {
+  let assert Ok(parsed) = tom.parse("a = -inf")
+  let dynamic = tom.to_dynamic(parsed)
+  let decoder = {
+    use a <- decode.field("a", tom.number_decoder())
+    decode.success(a)
+  }
+  assert decode.run(dynamic, decoder) == Ok(tom.NumberInfinity(tom.Negative))
+}
+
+pub fn to_dynamic_string_test() {
+  let assert Ok(parsed) = tom.parse("a = \"Hello, Joe\"")
+  let dynamic = tom.to_dynamic(parsed)
+  let decoder = {
+    use a_field <- decode.field("a", decode.string)
+    decode.success(a_field)
+  }
+
+  assert decode.run(dynamic, decoder) == Ok("Hello, Joe")
+}
+
+pub fn to_dynamic_bool_test() {
+  let assert Ok(parsed) = tom.parse("a = false")
+  let dynamic = tom.to_dynamic(parsed)
+  let decoder = {
+    use a_field <- decode.field("a", decode.bool)
+    decode.success(a_field)
+  }
+
+  assert decode.run(dynamic, decoder) == Ok(False)
+}
+
+pub fn to_dynamic_array_test() {
+  let assert Ok(parsed) = tom.parse("a = [1, 2, 3]")
+  let dynamic = tom.to_dynamic(parsed)
+  let decoder = {
+    use a_field <- decode.field("a", decode.list(decode.int))
+    decode.success(a_field)
+  }
+
+  assert decode.run(dynamic, decoder) == Ok([1, 2, 3])
+}
+
+pub fn to_dynamic_table_test() {
+  let assert Ok(parsed) =
+    tom.parse(
+      "
+  [a]
+  a = 1
+  b = 2
+  c = 3
+  ",
+    )
+  let dynamic = tom.to_dynamic(parsed)
+  let decoder = {
+    use a_table_field <- decode.field(
+      "a",
+      decode.dict(decode.string, decode.int),
+    )
+
+    decode.success(a_table_field)
+  }
+
+  let decoded =
+    dynamic
+    |> decode.run(decoder)
+    |> result.map(fn(value) {
+      value
+      |> dict.to_list()
+      |> list.sort(fn(a, b) {
+        let #(a_1, a_2) = a
+        let #(b_1, b_2) = b
+
+        order.break_tie(string.compare(a_1, b_1), int.compare(a_2, b_2))
+      })
+    })
+
+  assert decoded == Ok([#("a", 1), #("b", 2), #("c", 3)])
+}
+
+pub fn to_dynamic_inline_table_test() {
+  let assert Ok(parsed) = tom.parse("a = {a = 1, b = 2, c = 3}")
+  let dynamic = tom.to_dynamic(parsed)
+  let decoder = {
+    use a_table_field <- decode.field(
+      "a",
+      decode.dict(decode.string, decode.int),
+    )
+
+    decode.success(a_table_field)
+  }
+
+  let decoded =
+    dynamic
+    |> decode.run(decoder)
+    |> result.map(fn(value) {
+      value
+      |> dict.to_list()
+      |> list.sort(fn(a, b) {
+        let #(a_1, a_2) = a
+        let #(b_1, b_2) = b
+
+        order.break_tie(string.compare(a_1, b_1), int.compare(a_2, b_2))
+      })
+    })
+
+  assert decoded == Ok([#("a", 1), #("b", 2), #("c", 3)])
+}
+
+pub fn to_dynamic_array_of_tables_test() {
+  let assert Ok(parsed) =
+    tom.parse(
+      "[[a]]
+    a = 1
+    b = 2
+    c = 3
+    [[a]]
+    a = 4
+    b = 5
+    c = 6
+    [[a]]
+    a = 7
+    b = 8
+    c = 9
+  ",
+    )
+
+  let dynamic = tom.to_dynamic(parsed)
+  let decode_table = {
+    use a_field <- decode.field("a", decode.int)
+    use b_field <- decode.field("b", decode.int)
+    use c_field <- decode.field("c", decode.int)
+
+    decode.success(#(a_field, b_field, c_field))
+  }
+
+  let decode = {
+    use a_field <- decode.field("a", decode.list(decode_table))
+    decode.success(a_field)
+  }
+
+  let decoded =
+    dynamic
+    |> decode.run(decode)
+    |> result.map(fn(value) {
+      list.sort(value, fn(a, b) {
+        let #(a_1, a_2, a_3) = a
+        let #(b_1, b_2, b_3) = b
+
+        int.compare(a_1, b_1)
+        |> order.break_tie(int.compare(a_2, b_2))
+        |> order.break_tie(int.compare(a_3, b_3))
+      })
+    })
+  assert decoded == Ok([#(1, 2, 3), #(4, 5, 6), #(7, 8, 9)])
+}
+
+pub fn to_dynamic_date_test() {
+  let assert Ok(parsed) = tom.parse("a = 1979-05-27")
+  let dynamic = tom.to_dynamic(parsed)
+  let decoder = {
+    use a_field <- decode.field("a", tom.date_decoder())
+    decode.success(a_field)
+  }
+
+  assert decode.run(dynamic, decoder)
+    == Ok(calendar.Date(year: 1979, month: calendar.May, day: 27))
+}
+
+pub fn to_dynamic_time_test() {
+  let assert Ok(parsed) = tom.parse("a = 07:32:01")
+  let dynamic = tom.to_dynamic(parsed)
+  let decoder = {
+    use a_field <- decode.field("a", tom.time_decoder())
+    decode.success(a_field)
+  }
+
+  assert decode.run(dynamic, decoder)
+    == Ok(calendar.TimeOfDay(hours: 7, minutes: 32, seconds: 1, nanoseconds: 0))
+}
+
+pub fn to_dynamic_datetime_test() {
+  let assert Ok(parsed) = tom.parse("a = 1979-05-27T07:32:00Z")
+  let dynamic = tom.to_dynamic(parsed)
+  let decoder = {
+    use a_field <- decode.field("a", tom.datetime_decoder())
+    decode.success(a_field)
+  }
+
+  assert decode.run(dynamic, decoder)
+    == Ok(tom.DateTimeValue(
+      date: calendar.Date(year: 1979, month: calendar.May, day: 27),
+      time: calendar.TimeOfDay(
+        hours: 7,
+        minutes: 32,
+        seconds: 0,
+        nanoseconds: 0,
+      ),
+      offset: tom.Offset(calendar.utc_offset),
+    ))
+}
+
+pub fn to_dynamic_datetime_local_offset_test() {
+  let assert Ok(parsed) = tom.parse("a = 1979-05-27T07:32:00")
+  let dynamic = tom.to_dynamic(parsed)
+  let decoder = {
+    use a_field <- decode.field("a", tom.datetime_decoder())
+    decode.success(a_field)
+  }
+
+  assert decode.run(dynamic, decoder)
+    == Ok(tom.DateTimeValue(
+      date: calendar.Date(year: 1979, month: calendar.May, day: 27),
+      time: calendar.TimeOfDay(
+        hours: 7,
+        minutes: 32,
+        seconds: 0,
+        nanoseconds: 0,
+      ),
+      offset: tom.Local,
+    ))
 }
