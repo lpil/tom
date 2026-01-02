@@ -508,6 +508,25 @@ pub fn parse_multi_line_single_quote_string_too_many_quotes_test() {
   |> should.equal(Error(tom.Unexpected("''''", "'''")))
 }
 
+pub fn parse_multi_line_literal_string_with_hash_test() {
+  let expected =
+    dict.from_list([
+      #(
+        "a",
+        tom.String(
+          "This string contains a #hash character\nand more text after it\n",
+        ),
+      ),
+    ])
+  "a = '''
+This string contains a #hash character
+and more text after it
+'''
+"
+  |> tom.parse
+  |> should.equal(Ok(expected))
+}
+
 pub fn parse_multi_line_string_escape_newline_test() {
   let expected =
     dict.from_list([

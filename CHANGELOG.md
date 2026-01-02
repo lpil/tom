@@ -1,5 +1,9 @@
 # Changelog
 
+## v2.0.1 - 2026-01-13
+
+- Fixed a bug where the '#' symbol in ''' strings would be treated like a comment
+
 ## v2.0.0 - 2025-05-31
 
 - Added [gleam_time](https://hexdocs.pm/gleam_time/index.html) as a dependency.
