@@ -709,6 +709,8 @@ fn drop_comments(input: Tokens, acc: Tokens, in_string: Bool) -> Tokens {
     ["\\", "\"", ..input] if in_string ->
       drop_comments(input, ["\"", "\\", ..acc], in_string)
     ["\"", ..input] -> drop_comments(input, ["\"", ..acc], !in_string)
+    ["'", "'", "'", ..input] ->
+      drop_comments(input, ["'", "'", "'", ..acc], !in_string)
     ["#", ..input] if in_string -> drop_comments(input, ["#", ..acc], in_string)
     ["#", ..input] if !in_string ->
       input
