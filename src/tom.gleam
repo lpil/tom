@@ -1669,10 +1669,8 @@ pub fn as_number(toml: Toml) -> Result(Number, GetError) {
   }
 }
 
-/// A decoder that decodes TOML numbers into a `Number`. This should be used if
-/// you wish to parse numeric values loosely, regardless of their underlying
-/// type (e.g. to accept both floats and ints, or to check for NaN).
-///
+/// A decoder that decodes TOML numbers into a `Number`. This could be an int,
+/// a float, a NaN, or an infinity.
 ///
 /// ## Examples
 ///
