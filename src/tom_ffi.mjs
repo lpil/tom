@@ -61,11 +61,3 @@ export function infinity_from_dynamic(value) {
     return Result$Error(NanValue$NanValue(Sign$Positive()));
   }
 }
-
-export function identity(value) {
-  return value;
-}
-
-export function identity_ok(value) {
-  return Result$Ok(value);
-}
