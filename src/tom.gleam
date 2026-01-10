@@ -1850,19 +1850,14 @@ fn offset_decoder() -> Decoder(Offset) {
 }
 
 fn duration_decoder() -> Decoder(duration.Duration) {
-  use raw_duration <- decode.then(decode.list(decode.int))
+  use seconds <- decode.field("seconds", decode.int)
+  use nanos <- decode.field("nanoseconds", decode.int)
 
-  case raw_duration {
-    [seconds, nanos] -> {
-      let seconds_duration = duration.seconds(seconds)
-      let nanos_duration = duration.nanoseconds(nanos)
-      let full_duration = duration.add(seconds_duration, nanos_duration)
+  let seconds_duration = duration.seconds(seconds)
+  let nanos_duration = duration.nanoseconds(nanos)
+  let full_duration = duration.add(seconds_duration, nanos_duration)
 
-      decode.success(full_duration)
-    }
-
-    _ -> decode.failure(duration.seconds(0), "Duration")
-  }
+  decode.success(full_duration)
 }
 
 @external(erlang, "tom_ffi", "nan_to_dynamic")
@@ -1944,5 +1939,8 @@ fn offset_to_dynamic(offset: Offset) -> Dynamic {
 fn duration_to_dynamic(duration: duration.Duration) -> Dynamic {
   let #(seconds, nanos) = duration.to_seconds_and_nanoseconds(duration)
 
-  dynamic.array([dynamic.int(seconds), dynamic.int(nanos)])
+  dynamic.properties([
+    #(dynamic.string("seconds"), dynamic.int(seconds)),
+    #(dynamic.string("nanoseconds"), dynamic.int(nanos)),
+  ])
 }
