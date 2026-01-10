@@ -86,7 +86,7 @@ type Tokens =
 type Parsed(a) =
   Result(#(a, Tokens), ParseError)
 
-/// A number of any kind, returned by the `get_number`/`decode_number` functions.
+/// A number of any kind, returned by the `get_number`/`number_decoder` functions.
 pub type Number {
   NumberInt(Int)
   NumberFloat(Float)
@@ -1669,7 +1669,10 @@ pub fn as_number(toml: Toml) -> Result(Number, GetError) {
   }
 }
 
-/// A decoder that decodes TOML numbers into a `Number`.
+/// A decoder that decodes TOML numbers into a `Number`. This should be used if
+/// you wish to parse numeric values loosely, regardless of their underlying
+/// type (e.g. to accept both floats and ints, or to check for NaN).
+///
 ///
 /// ## Examples
 ///
