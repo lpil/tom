@@ -1708,7 +1708,7 @@ pub fn as_number(toml: Toml) -> Result(Number, GetError) {
 /// ## Examples
 ///
 /// ```gleam
-/// let assert Ok(toml) = tom.parse_dynamic("lucy = 1337")
+/// let assert Ok(toml) = tom.parse_to_dynamic("lucy = 1337")
 /// decode.run(toml, decode.dict(decode.string, tom.number_decoder())))
 /// // -> Ok(dict.from_list([#("lucy", tom.NumberInt(1337))]))
 /// ```
@@ -1729,7 +1729,7 @@ pub fn number_decoder() -> Decoder(Number) {
 /// ## Examples
 ///
 /// ```gleam
-/// let assert Ok(toml) = tom.parse_dynamic("future = 2015-10-21")
+/// let assert Ok(toml) = tom.parse_to_dynamic("future = 2015-10-21")
 /// decode.run(toml, decode.dict(decode.string, tom.date_decoder())))
 /// // -> Ok(
 /// //      dict.from_list([
@@ -1753,7 +1753,7 @@ pub fn date_decoder() -> Decoder(calendar.Date) {
 /// ## Examples
 ///
 /// ```gleam
-/// let assert Ok(toml) = tom.parse_dynamic("time = 07:28:00")
+/// let assert Ok(toml) = tom.parse_to_dynamic("time = 07:28:00")
 /// decode.run(toml, decode.dict(decode.string, tom.time_decoder())))
 /// // -> Ok(
 /// //      dict.from_list([
@@ -1779,7 +1779,7 @@ pub fn time_decoder() -> Decoder(calendar.TimeOfDay) {
 /// ## Examples
 ///
 /// ```gleam
-/// let assert Ok(toml) = tom.parse_dynamic("datetime = 2015-10-21T07:28:00")
+/// let assert Ok(toml) = tom.parse_to_dynamic("datetime = 2015-10-21T07:28:00")
 /// decode.run(toml, decode.dict(decode.string, tom.datetime_decoder()))
 /// // -> Ok(
 /// //      dict.from_list([
