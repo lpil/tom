@@ -8,12 +8,21 @@ on:
   pull_request:
 
 jobs:
-  test:
-    name: Run Tests (${{ matrix.target }})
+  test-erlang:
+    name: Run Tests (Erlang)
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        target: [erlang, javascript]
+    steps:
+      - uses: actions/checkout@v3
+      - uses: erlef/setup-beam@v1
+        with:
+          otp-version: "28"
+          gleam-version: "1.13.0"
+          rebar3-version: "3"
+      - run: gleam test --target erlang
+
+  test-javascript:
+    name: Run Tests (JavaScript)
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - uses: erlef/setup-beam@v1
@@ -22,10 +31,9 @@ jobs:
           gleam-version: "1.14.0"
           rebar3-version: "3"
       - uses: actions/setup-node@v4
-        if: matrix.target == 'javascript'
         with:
           node-version: 20
-      - run: gleam test --target ${{ matrix.target }}
+      - run: gleam test --target javascript
 
   check-format:
     name: Check Format
