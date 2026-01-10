@@ -1,34 +1,34 @@
 -module(tom_ffi).
 -export([
-         infinity_to_dynamic/1,
-         infinity_from_dynamic/1,
-         nan_to_dynamic/1, 
-         nan_from_dynamic/1
-        ]).
+    infinity_to_dynamic/1,
+    infinity_from_dynamic/1,
+    nan_to_dynamic/1,
+    nan_from_dynamic/1
+]).
 
 nan_to_dynamic({nan_value, positive}) -> 
-  positive_nan;
+    positive_nan;
 nan_to_dynamic({nan_value, negative}) ->
-  negative_nan.
+    negative_nan.
 
 nan_from_dynamic(positive_nan) ->
-  {ok, {nan_value, positive}};
+    {ok, {nan_value, positive}};
 nan_from_dynamic(negative_nan) ->
-  {ok, {nan_value, negative}};
+    {ok, {nan_value, negative}};
 nan_from_dynamic(_Other) ->
-  % value here is a placeholder
-  {error, {nan_value, positive}}.
+    % Value here is a placeholder
+    {error, {nan_value, positive}}.
 
 infinity_to_dynamic({infinity_value, positive}) -> 
-  positive_infinity;
+    positive_infinity;
 infinity_to_dynamic({infinity_value, negative}) ->
-  negative_infinity.
+    negative_infinity.
 
 infinity_from_dynamic(positive_infinity) ->
-  {ok, {infinity_value, positive}};
+    {ok, {infinity_value, positive}};
 infinity_from_dynamic(negative_infinity) ->
-  {ok, {infinity_value, negative}};
+    {ok, {infinity_value, negative}};
 infinity_from_dynamic(_Other) ->
-  % value here is a placeholder
-  {error, {infinity_value, positive}}.
+    % Value here is a placeholder
+    {error, {infinity_value, positive}}.
 
