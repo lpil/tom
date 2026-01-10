@@ -220,7 +220,7 @@ pub fn get_int(
 /// Get a float from a TOML document dictionary.
 ///
 /// ## Examples
-/// 
+///
 /// ```gleam
 /// let assert Ok(parsed) = parse("a.b.c = 1.1")
 /// get_float(parsed, ["a", "b", "c"])
@@ -242,7 +242,7 @@ pub fn get_float(
 /// Get a bool from a TOML document dictionary.
 ///
 /// ## Examples
-/// 
+///
 /// ```gleam
 /// let assert Ok(parsed) = parse("a.b.c = true")
 /// get_bool(parsed, ["a", "b", "c"])
@@ -264,7 +264,7 @@ pub fn get_bool(
 /// Get a string from a TOML document dictionary.
 ///
 /// ## Examples
-/// 
+///
 /// ```gleam
 /// let assert Ok(parsed) = parse("a.b.c = \"ok\"")
 /// get_string(parsed, ["a", "b", "c"])
@@ -285,7 +285,7 @@ pub fn get_string(
 /// Get a date from a TOML document dictionary.
 ///
 /// ## Examples
-/// 
+///
 /// ```gleam
 /// let assert Ok(parsed) = parse("a.b.c = 1979-05-27")
 /// get_date(parsed, ["a", "b", "c"])
@@ -1672,6 +1672,7 @@ pub fn as_number(toml: Toml) -> Result(Number, GetError) {
 /// A decoder that decodes TOML numbers into a `Number`.
 ///
 /// ## Examples
+///
 /// ```gleam
 /// let assert Ok(toml) = tom.parse_dynamic("lucy = 1337")
 /// decode.run(toml, decode.dict(decode.string, tom.number_decoder())))
