@@ -1863,7 +1863,7 @@ fn month_decoder() -> Decoder(calendar.Month) {
     "October" -> decode.success(calendar.October)
     "November" -> decode.success(calendar.November)
     "December" -> decode.success(calendar.December)
-    _ -> decode.failure(calendar.January, "month string")
+    _ -> decode.failure(calendar.January, "Month")
   }
 }
 
