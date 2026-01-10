@@ -142,13 +142,52 @@ pub fn get(
   }
 }
 
-/// Convert a parsed TOML document into a `Dynamic`.
+/// Convert a parsed TOML document into a `Dynamic`. This can be used to build
+/// complex decoders based on TOML data, using
+/// [`gleam/dynamic/decode`](https://hexdocs.pm/gleam_stdlib/0.68.1/gleam/dynamic/decode.html).
+/// Decoders are provided in this library for TOML-specific types.
+///
+/// ## Examples
+///
+/// ```gleam
+/// let config = "name = \"Lucy\"\npoints = 5"
+/// let assert Ok(parsed) = parse(config)
+/// let dynamic = to_dynamic(parsed)
+///
+/// let decoder = {
+///   use name <- decode.field("name", decode.string)
+///   use points <- decode.field("points", decode.int)
+///   decode.success(#(name, points))
+/// }
+///
+/// decode.run(dynamic, decoder)
+/// // -> Ok(#("Lucy", 5))
+/// ```
 pub fn to_dynamic(toml: Dict(String, Toml)) -> Dynamic {
   table_to_dynamic(toml)
 }
 
 /// A convenience for parsing a TOML document and immediately converting it to
-/// a `Dynamic`.
+/// a `Dynamic`. This can be used to build complex decoders based on TOML data,
+/// using
+/// [`gleam/dynamic/decode`](https://hexdocs.pm/gleam_stdlib/0.68.1/gleam/dynamic/decode.html).
+/// Decoders are provided in this library for TOML-specific types.
+///
+/// ## Examples
+///
+/// ```gleam
+/// let config = "name = \"Lucy\"\npoints = 5"
+/// let assert Ok(dynamic) = parse_to_dynamic(config)
+///
+/// let decoder = {
+///   use name <- decode.field("name", decode.string)
+///   use points <- decode.field("points", decode.int)
+///   decode.success(#(name, points))
+/// }
+///
+/// decode.run(dynamic, decoder)
+/// // -> Ok(#("Lucy", 5))
+/// ```
 pub fn parse_to_dynamic(input: String) -> Result(Dynamic, ParseError) {
   input
   |> parse()
@@ -159,7 +198,7 @@ pub fn parse_to_dynamic(input: String) -> Result(Dynamic, ParseError) {
 /// Get an int from a TOML document dictionary.
 ///
 /// ## Examples
-/// 
+///
 /// ```gleam
 /// let assert Ok(parsed) = parse("a.b.c = 1")
 /// get_int(parsed, ["a", "b", "c"])
