@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Added parsing of TOML documents to `Dynamic`.
+
 ## v2.0.1 - 2026-01-13
 
 - Fixed a bug where the '#' symbol in ''' strings would be treated like a
