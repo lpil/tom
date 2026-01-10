@@ -1683,8 +1683,8 @@ pub fn number_decoder() -> Decoder(Number) {
     decode.map(infinity_decoder(), fn(infinity) {
       NumberInfinity(infinity.sign)
     }),
-    // This must come _after_ the infinity decoder, as the stdlib implementation will
-    // attempt to decode Infinity as a float
+    // This must come _after_ the infinity decoder, as the stdlib implementation
+    // will attempt to decode Infinity as a float
     decode.map(decode.float, NumberFloat),
   ])
 }

@@ -33,7 +33,7 @@ export function nan_from_dynamic(value) {
   } else if (value == negativeNaN) {
     return Result$Ok(NanValue$NanValue(Sign$Negative()));
   } else {
-    // value here is a placeholder
+    // Value here is a placeholder
     return Result$Error(NanValue$NanValue(Sign$Positive()));
   }
 }
@@ -57,7 +57,7 @@ export function infinity_from_dynamic(value) {
   } else if (value == -Infinity) {
     return Result$Ok(InfinityValue$InfinityValue(Sign$Negative()));
   } else {
-    // value here is a placeholder
+    // Value here is a placeholder
     return Result$Error(NanValue$NanValue(Sign$Positive()));
   }
 }
