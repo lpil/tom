@@ -147,8 +147,9 @@ pub fn to_dynamic(toml: Dict(String, Toml)) -> Dynamic {
   table_to_dynamic(toml)
 }
 
-/// A convenience for parsing a TOML document and immediately converting it to a Dynamic
-pub fn parse_dynamic(input: String) -> Result(Dynamic, ParseError) {
+/// A convenience for parsing a TOML document and immediately converting it to
+/// a `Dynamic`.
+pub fn parse_to_dynamic(input: String) -> Result(Dynamic, ParseError) {
   input
   |> parse()
   |> result.map(to_dynamic)
@@ -1638,122 +1639,95 @@ pub fn as_number(toml: Toml) -> Result(Number, GetError) {
 /// // -> Ok(dict.from_list([#("lucy", tom.NumberInt(1337))]))
 /// ```
 pub fn number_decoder() -> Decoder(Number) {
-  decode.new_primitive_decoder("Number", fn(value) {
-    let decoder = {
-      decode.one_of(decode.map(decode.int, NumberInt), or: [
-        decode.map(nan_decoder(), fn(nan) { NumberNan(nan.sign) }),
-        decode.map(infinity_decoder(), fn(infinity) {
-          NumberInfinity(infinity.sign)
-        }),
-        // This must come _after_ the infinity decoder, as the stdlib implementation will
-        // attempt to decode Infinity as a float
-        decode.map(decode.float, NumberFloat),
-      ])
-    }
-
-    value
-    |> decode.run(decoder)
-    |> result.map_error(fn(_error) { NumberInt(0) })
-  })
+  decode.one_of(decode.map(decode.int, NumberInt), or: [
+    decode.map(nan_decoder(), fn(nan) { NumberNan(nan.sign) }),
+    decode.map(infinity_decoder(), fn(infinity) {
+      NumberInfinity(infinity.sign)
+    }),
+    // This must come _after_ the infinity decoder, as the stdlib implementation will
+    // attempt to decode Infinity as a float
+    decode.map(decode.float, NumberFloat),
+  ])
 }
 
 /// A decoder that decodes TOML date into a `calendar.Date`.
 ///
 /// ## Examples
+///
 /// ```gleam
 /// let assert Ok(toml) = tom.parse_dynamic("future = 2015-10-21")
 /// decode.run(toml, decode.dict(decode.string, tom.date_decoder())))
-/// // -> Ok(dict.from_list([#("future", calendar.Date(year: 2015, month: calendar.October, day: 21))]))
+/// // -> Ok(
+/// //      dict.from_list([
+/// //        #("future", calendar.Date(
+/// //          year: 2015, month: calendar.October, day: 21
+/// //        )),
+/// //      ])
+/// //    )
 /// ```
+///
 pub fn date_decoder() -> Decoder(calendar.Date) {
-  decode.new_primitive_decoder("calendar.Date", fn(value) {
-    let decoder = {
-      use year <- decode.field("year", decode.int)
-      use month <- decode.field("month", month_decoder())
-      use day <- decode.field("day", decode.int)
+  use year <- decode.field("year", decode.int)
+  use month <- decode.field("month", month_decoder())
+  use day <- decode.field("day", decode.int)
 
-      decode.success(calendar.Date(year:, month:, day:))
-    }
-
-    value
-    |> decode.run(decoder)
-    |> result.map_error(fn(_error) {
-      calendar.Date(year: 1970, month: calendar.January, day: 1)
-    })
-  })
+  decode.success(calendar.Date(year:, month:, day:))
 }
 
 /// A decoder that decodes TOML time into a `calendar.TimeOfDay`.
 ///
 /// ## Examples
+///
 /// ```gleam
 /// let assert Ok(toml) = tom.parse_dynamic("time = 07:28:00")
 /// decode.run(toml, decode.dict(decode.string, tom.time_decoder())))
-/// // -> Ok(dict.from_list([#("time", calendar.TimeOfDay(hours: 7, minutes: 28, seconds: 0, nanoseconds: 0))]))
+/// // -> Ok(
+/// //      dict.from_list([
+/// //        #("time", calendar.TimeOfDay(
+/// //          hours: 7, minutes: 28, seconds: 0, nanoseconds: 0
+/// //        ))
+/// //      ])
+/// //    )
 /// ```
+///
 pub fn time_decoder() -> Decoder(calendar.TimeOfDay) {
-  decode.new_primitive_decoder("calendar.Date", fn(value) {
-    let decoder = {
-      use hours <- decode.field("hours", decode.int)
-      use minutes <- decode.field("minutes", decode.int)
-      use seconds <- decode.field("seconds", decode.int)
-      use nanoseconds <- decode.field("nanoseconds", decode.int)
+  use hours <- decode.field("hours", decode.int)
+  use minutes <- decode.field("minutes", decode.int)
+  use seconds <- decode.field("seconds", decode.int)
+  use nanoseconds <- decode.field("nanoseconds", decode.int)
 
-      decode.success(calendar.TimeOfDay(
-        hours:,
-        minutes:,
-        seconds:,
-        nanoseconds:,
-      ))
-    }
-
-    value
-    |> decode.run(decoder)
-    |> result.map_error(fn(_error) {
-      calendar.TimeOfDay(hours: 0, minutes: 0, seconds: 0, nanoseconds: 0)
-    })
-  })
+  decode.success(calendar.TimeOfDay(hours:, minutes:, seconds:, nanoseconds:))
 }
 
-/// A decoder that decodes TOML datetime into corresponding date, time, and offset parts.
+/// A decoder that decodes TOML datetime into corresponding date, time, and
+/// offset parts.
 ///
 /// ## Examples
+///
 /// ```gleam
 /// let assert Ok(toml) = tom.parse_dynamic("datetime = 2015-10-21T07:28:00")
 /// decode.run(toml, decode.dict(decode.string, tom.datetime_decoder()))
-/// // -> Ok(dict.from_list([
-/// //   #("datetime", tom.DateTimeValue(
-/// //     date: calendar.Date(year: 2015, month: calendar.October, day: 21),
-/// //     time: calendar.TimeOfDay(hours: 7, minutes: 28, seconds: 0, nanoseconds: 0),
-/// //     offset: tom.Local
-/// //   ))
-/// // ]))
+/// // -> Ok(
+/// //      dict.from_list([
+/// //        #("datetime", tom.DateTimeValue(
+/// //          date: calendar.Date(
+/// //            year: 2015, month: calendar.October, day: 21
+/// //          ),
+/// //          time: calendar.TimeOfDay(
+/// //            hours: 7, minutes: 28, seconds: 0, nanoseconds: 0
+/// //          ),
+/// //          offset: tom.Local
+/// //        ))
+/// //      ])
+/// //    )
 /// ```
+///
 pub fn datetime_decoder() -> Decoder(DateTimeValue) {
-  decode.new_primitive_decoder("DateTimeValue", fn(value) {
-    let decoder = {
-      use date <- decode.field("date", date_decoder())
-      use time <- decode.field("time", time_decoder())
-      use offset <- decode.field("offset", offset_decoder())
+  use date <- decode.field("date", date_decoder())
+  use time <- decode.field("time", time_decoder())
+  use offset <- decode.field("offset", offset_decoder())
 
-      decode.success(DateTimeValue(date:, time:, offset:))
-    }
-
-    value
-    |> decode.run(decoder)
-    |> result.map_error(fn(_error) {
-      DateTimeValue(
-        date: calendar.Date(year: 1970, month: calendar.January, day: 1),
-        time: calendar.TimeOfDay(
-          hours: 0,
-          minutes: 0,
-          seconds: 0,
-          nanoseconds: 0,
-        ),
-        offset: Local,
-      )
-    })
-  })
+  decode.success(DateTimeValue(date:, time:, offset:))
 }
 
 fn value_to_dynamic(value: Toml) -> Dynamic {
@@ -1800,11 +1774,54 @@ fn infinity_decoder() -> Decoder(InfinityValue) {
 }
 
 fn month_decoder() -> Decoder(calendar.Month) {
-  decode.new_primitive_decoder("calendar.Month", month_from_dynamic)
+  use month_name <- decode.then(decode.string)
+
+  case month_name {
+    "January" -> decode.success(calendar.January)
+    "February" -> decode.success(calendar.February)
+    "March" -> decode.success(calendar.March)
+    "April" -> decode.success(calendar.April)
+    "May" -> decode.success(calendar.May)
+    "June" -> decode.success(calendar.June)
+    "July" -> decode.success(calendar.July)
+    "August" -> decode.success(calendar.August)
+    "September" -> decode.success(calendar.September)
+    "October" -> decode.success(calendar.October)
+    "November" -> decode.success(calendar.November)
+    "December" -> decode.success(calendar.December)
+    _ -> decode.failure(calendar.January, "month string")
+  }
 }
 
 fn offset_decoder() -> Decoder(Offset) {
-  decode.new_primitive_decoder("Offset", offset_from_dynamic)
+  use variant <- decode.field("type", decode.string)
+
+  case variant {
+    "Local" -> decode.success(Local)
+    "Offset" -> {
+      use duration <- decode.field("duration", duration_decoder())
+
+      decode.success(Offset(duration))
+    }
+
+    _ -> decode.failure(Local, "Offset")
+  }
+}
+
+fn duration_decoder() -> Decoder(duration.Duration) {
+  use raw_duration <- decode.then(decode.list(decode.int))
+
+  case raw_duration {
+    [seconds, nanos] -> {
+      let seconds_duration = duration.seconds(seconds)
+      let nanos_duration = duration.nanoseconds(nanos)
+      let full_duration = duration.add(seconds_duration, nanos_duration)
+
+      decode.success(full_duration)
+    }
+
+    _ -> decode.failure(duration.seconds(0), "Duration")
+  }
 }
 
 @external(erlang, "tom_ffi", "nan_to_dynamic")
@@ -1833,16 +1850,22 @@ fn date_to_dynamic(date: calendar.Date) -> Dynamic {
   ])
 }
 
-// Month can be trivially converted back/forth between erlang/js/gleam, so an identity function works here
-@external(erlang, "tom_ffi", "identity")
-@external(javascript, "./tom_ffi.mjs", "identity")
-fn month_to_dynamic(month: calendar.Month) -> Dynamic
-
-@external(erlang, "tom_ffi", "identity_ok")
-@external(javascript, "./tom_ffi.mjs", "identity_ok")
-fn month_from_dynamic(
-  dynamic: Dynamic,
-) -> Result(calendar.Month, calendar.Month)
+fn month_to_dynamic(month: calendar.Month) -> Dynamic {
+  case month {
+    calendar.January -> dynamic.string("January")
+    calendar.February -> dynamic.string("February")
+    calendar.March -> dynamic.string("March")
+    calendar.April -> dynamic.string("April")
+    calendar.May -> dynamic.string("May")
+    calendar.June -> dynamic.string("June")
+    calendar.July -> dynamic.string("July")
+    calendar.August -> dynamic.string("August")
+    calendar.September -> dynamic.string("September")
+    calendar.October -> dynamic.string("October")
+    calendar.November -> dynamic.string("November")
+    calendar.December -> dynamic.string("December")
+  }
+}
 
 fn time_to_dynamic(time: calendar.TimeOfDay) -> Dynamic {
   dynamic.properties([
@@ -1865,11 +1888,20 @@ fn datetime_to_dynamic(
   ])
 }
 
-// Offset can be trivially converted back/forth between erlang/js/gleam, so an identity function works here
-@external(erlang, "tom_ffi", "identity")
-@external(javascript, "./tom_ffi.mjs", "identity")
-fn offset_to_dynamic(offset: Offset) -> Dynamic
+fn offset_to_dynamic(offset: Offset) -> Dynamic {
+  case offset {
+    Local ->
+      dynamic.properties([#(dynamic.string("type"), dynamic.string("Local"))])
+    Offset(duration) ->
+      dynamic.properties([
+        #(dynamic.string("type"), dynamic.string("Offset")),
+        #(dynamic.string("duration"), duration_to_dynamic(duration)),
+      ])
+  }
+}
 
-@external(erlang, "tom_ffi", "identity_ok")
-@external(javascript, "./tom_ffi.mjs", "identity_ok")
-fn offset_from_dynamic(dynamic: Dynamic) -> Result(Offset, Offset)
+fn duration_to_dynamic(duration: duration.Duration) -> Dynamic {
+  let #(seconds, nanos) = duration.to_seconds_and_nanoseconds(duration)
+
+  dynamic.array([dynamic.int(seconds), dynamic.int(nanos)])
+}
