@@ -2,7 +2,8 @@
 
 ## v2.0.1 - 2026-01-13
 
-- Fixed a bug where the '#' symbol in ''' strings would be treated like a comment
+- Fixed a bug where the '#' symbol in ''' strings would be treated like a
+  comment.
 
 ## v2.0.0 - 2025-05-31
 
