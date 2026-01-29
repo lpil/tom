@@ -4,7 +4,10 @@ version = "2.0.1"
 description = "A pure Gleam TOML parser!"
 licences = ["Apache-2.0"]
 repository = { type = "github", user = "lpil", repo = "tom" }
-links = [{ title = "TOML website", href = "https://toml.io/en/" }]
+links = [
+  { title = "TOML website", href = "https://toml.io/en/" },
+  { title = "Sponsor", href = "https://github.com/sponsors/lpil" },
+]
 
 [dependencies]
 gleam_stdlib = ">= 0.33.0 and < 3.0.0"
