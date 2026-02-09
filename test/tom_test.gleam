@@ -1433,20 +1433,15 @@ pub fn to_dynamic_datetime_test() {
   let assert Ok(parsed) = tom.parse("a = 1979-05-27T07:32:00Z")
   let dynamic = tom.to_dynamic(parsed)
   let decoder = {
-    use a_field <- decode.field("a", tom.datetime_decoder())
+    use a_field <- decode.field("a", tom.calendar_date_time_decoder())
     decode.success(a_field)
   }
 
   assert decode.run(dynamic, decoder)
-    == Ok(tom.DateTimeValue(
-      date: calendar.Date(year: 1979, month: calendar.May, day: 27),
-      time: calendar.TimeOfDay(
-        hours: 7,
-        minutes: 32,
-        seconds: 0,
-        nanoseconds: 0,
-      ),
-      offset: tom.Offset(calendar.utc_offset),
+    == Ok(#(
+      calendar.Date(year: 1979, month: calendar.May, day: 27),
+      calendar.TimeOfDay(hours: 7, minutes: 32, seconds: 0, nanoseconds: 0),
+      tom.Offset(calendar.utc_offset),
     ))
 }
 
@@ -1454,20 +1449,15 @@ pub fn to_dynamic_datetime_local_offset_test() {
   let assert Ok(parsed) = tom.parse("a = 1979-05-27T07:32:00")
   let dynamic = tom.to_dynamic(parsed)
   let decoder = {
-    use a_field <- decode.field("a", tom.datetime_decoder())
+    use a_field <- decode.field("a", tom.calendar_date_time_decoder())
     decode.success(a_field)
   }
 
   assert decode.run(dynamic, decoder)
-    == Ok(tom.DateTimeValue(
-      date: calendar.Date(year: 1979, month: calendar.May, day: 27),
-      time: calendar.TimeOfDay(
-        hours: 7,
-        minutes: 32,
-        seconds: 0,
-        nanoseconds: 0,
-      ),
-      offset: tom.Local,
+    == Ok(#(
+      calendar.Date(year: 1979, month: calendar.May, day: 27),
+      calendar.TimeOfDay(hours: 7, minutes: 32, seconds: 0, nanoseconds: 0),
+      tom.Local,
     ))
 }
 
@@ -1475,19 +1465,48 @@ pub fn to_dynamic_datetime_numeric_offset_offset_test() {
   let assert Ok(parsed) = tom.parse("a = 1979-05-27T07:32:00-05:00")
   let dynamic = tom.to_dynamic(parsed)
   let decoder = {
-    use a_field <- decode.field("a", tom.datetime_decoder())
+    use a_field <- decode.field("a", tom.calendar_date_time_decoder())
     decode.success(a_field)
   }
 
   assert decode.run(dynamic, decoder)
-    == Ok(tom.DateTimeValue(
-      date: calendar.Date(year: 1979, month: calendar.May, day: 27),
-      time: calendar.TimeOfDay(
-        hours: 7,
-        minutes: 32,
-        seconds: 0,
-        nanoseconds: 0,
-      ),
-      offset: tom.Offset(duration.hours(-5)),
+    == Ok(#(
+      calendar.Date(year: 1979, month: calendar.May, day: 27),
+      calendar.TimeOfDay(hours: 7, minutes: 32, seconds: 0, nanoseconds: 0),
+      tom.Offset(duration.hours(-5)),
     ))
+}
+
+pub fn to_dynamic_timestamp_utc_test() {
+  let assert Ok(parsed) = tom.parse("a = 1970-01-01T00:00:00Z")
+  let dynamic = tom.to_dynamic(parsed)
+  let decoder = {
+    use a_field <- decode.field("a", tom.timestamp_decoder())
+    decode.success(a_field)
+  }
+
+  assert decode.run(dynamic, decoder) == Ok(timestamp.unix_epoch)
+}
+
+pub fn to_dynamic_timestamp_with_offset_test() {
+  let assert Ok(parsed) = tom.parse("a = 1970-01-01T01:00:00+01:00")
+  let dynamic = tom.to_dynamic(parsed)
+  let decoder = {
+    use a_field <- decode.field("a", tom.timestamp_decoder())
+    decode.success(a_field)
+  }
+
+  assert decode.run(dynamic, decoder) == Ok(timestamp.unix_epoch)
+}
+
+pub fn to_dynamic_timestamp_local_fails_test() {
+  let assert Ok(parsed) = tom.parse("a = 1970-01-01T00:00:00")
+  let dynamic = tom.to_dynamic(parsed)
+  let decoder = {
+    use a_field <- decode.field("a", tom.timestamp_decoder())
+    decode.success(a_field)
+  }
+
+  assert decode.run(dynamic, decoder)
+    == Error([decode.DecodeError("DateTime with offset", "Dict", ["a"])])
 }

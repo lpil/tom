@@ -67,11 +67,6 @@ pub type Sign {
   Negative
 }
 
-/// A date time value, decoded by the `decode_datetime` function
-pub type DateTimeValue {
-  DateTimeValue(date: calendar.Date, time: calendar.TimeOfDay, offset: Offset)
-}
-
 /// An error that can occur when parsing a TOML document.
 pub type ParseError {
   /// An unexpected character was encountered when parsing the document.
@@ -101,16 +96,6 @@ pub type GetError {
   NotFound(key: List(String))
   /// The value at the given key was not of the expected type.
   WrongType(key: List(String), expected: String, got: String)
-}
-
-@internal
-pub type NanValue {
-  NanValue(sign: Sign)
-}
-
-@internal
-pub type InfinityValue {
-  InfinityValue(sign: Sign)
 }
 
 // TODO: test
@@ -1681,10 +1666,8 @@ pub fn as_number(toml: Toml) -> Result(Number, GetError) {
 /// ```
 pub fn number_decoder() -> Decoder(Number) {
   decode.one_of(decode.map(decode.int, NumberInt), or: [
-    decode.map(nan_decoder(), fn(nan) { NumberNan(nan.sign) }),
-    decode.map(infinity_decoder(), fn(infinity) {
-      NumberInfinity(infinity.sign)
-    }),
+    decode.map(nan_decoder(), fn(sign) { NumberNan(sign) }),
+    decode.map(infinity_decoder(), fn(sign) { NumberInfinity(sign) }),
     // This must come _after_ the infinity decoder, as the stdlib implementation
     // will attempt to decode Infinity as a float
     decode.map(decode.float, NumberFloat),
@@ -1740,35 +1723,59 @@ pub fn time_decoder() -> Decoder(calendar.TimeOfDay) {
   decode.success(calendar.TimeOfDay(hours:, minutes:, seconds:, nanoseconds:))
 }
 
-/// A decoder that decodes TOML datetime into corresponding date, time, and
+/// A decoder that decodes TOML date time into corresponding date, time, and
 /// offset parts.
 ///
 /// ## Examples
 ///
 /// ```gleam
 /// let assert Ok(toml) = tom.parse_to_dynamic("datetime = 2015-10-21T07:28:00")
-/// decode.run(toml, decode.dict(decode.string, tom.datetime_decoder()))
+/// decode.run(toml, decode.dict(decode.string, tom.calendar_date_time_decoder()))
 /// // -> Ok(
 /// //      dict.from_list([
-/// //        #("datetime", tom.DateTimeValue(
-/// //          date: calendar.Date(
-/// //            year: 2015, month: calendar.October, day: 21
-/// //          ),
-/// //          time: calendar.TimeOfDay(
-/// //            hours: 7, minutes: 28, seconds: 0, nanoseconds: 0
-/// //          ),
-/// //          offset: tom.Local
+/// //        #("datetime", #(
+/// //          calendar.Date(year: 2015, month: calendar.October, day: 21),
+/// //          calendar.TimeOfDay(hours: 7, minutes: 28, seconds: 0, nanoseconds: 0),
+/// //          tom.Local
 /// //        ))
 /// //      ])
 /// //    )
 /// ```
 ///
-pub fn datetime_decoder() -> Decoder(DateTimeValue) {
+pub fn calendar_date_time_decoder() -> Decoder(
+  #(calendar.Date, calendar.TimeOfDay, Offset),
+) {
   use date <- decode.field("date", date_decoder())
   use time <- decode.field("time", time_decoder())
   use offset <- decode.field("offset", offset_decoder())
 
-  decode.success(DateTimeValue(date:, time:, offset:))
+  decode.success(#(date, time, offset))
+}
+
+/// A decoder that decodes TOML datetime into an unambiguous timestamp
+///
+/// If a TOML date time has no offset it is ambiguous and cannot be converted
+/// into a timestamp. There's no way to know what actual point in time it would
+/// be as it would be different in different time zones.
+///
+/// ## Examples
+///
+/// ```gleam
+/// let assert Ok(toml) = tom.parse_to_dynamic("datetime = 2015-10-21T14:28:00Z")
+/// decode.run(toml, decode.dict(decode.string, tom.timestamp_decoder()))
+/// // -> Ok(dict.from_list([#("datetime", timestamp.from_unix_seconds(1445437680))]))
+/// ```
+///
+pub fn timestamp_decoder() -> Decoder(timestamp.Timestamp) {
+  use calendar_date_time <- decode.then(calendar_date_time_decoder())
+
+  case calendar_date_time {
+    #(date, time, Offset(offset)) ->
+      decode.success(timestamp.from_calendar(date, time, offset))
+
+    #(_date, _time, Local) ->
+      decode.failure(timestamp.unix_epoch, "DateTime with offset")
+  }
 }
 
 fn value_to_dynamic(value: Toml) -> Dynamic {
@@ -1777,8 +1784,8 @@ fn value_to_dynamic(value: Toml) -> Dynamic {
     Float(x) -> dynamic.float(x)
     Bool(x) -> dynamic.bool(x)
     String(x) -> dynamic.string(x)
-    Nan(sign) -> nan_to_dynamic(NanValue(sign))
-    Infinity(sign) -> infinity_to_dynamic(InfinityValue(sign))
+    Nan(sign) -> nan_to_dynamic(sign)
+    Infinity(sign) -> infinity_to_dynamic(sign)
     Date(x) -> date_to_dynamic(x)
     Time(x) -> time_to_dynamic(x)
     DateTime(date, time, offset) -> datetime_to_dynamic(date, time, offset)
@@ -1806,11 +1813,11 @@ fn table_to_dynamic(toml: Dict(String, Toml)) -> Dynamic {
   |> dynamic.properties()
 }
 
-fn nan_decoder() -> Decoder(NanValue) {
+fn nan_decoder() -> Decoder(Sign) {
   decode.new_primitive_decoder("NanValue", nan_from_dynamic)
 }
 
-fn infinity_decoder() -> Decoder(InfinityValue) {
+fn infinity_decoder() -> Decoder(Sign) {
   decode.new_primitive_decoder("InfinityValue", infinity_from_dynamic)
 }
 
@@ -1862,21 +1869,19 @@ fn duration_decoder() -> Decoder(duration.Duration) {
 
 @external(erlang, "tom_ffi", "nan_to_dynamic")
 @external(javascript, "./tom_ffi.mjs", "nan_to_dynamic")
-fn nan_to_dynamic(nan: NanValue) -> Dynamic
+fn nan_to_dynamic(sign: Sign) -> Dynamic
 
 @external(erlang, "tom_ffi", "nan_from_dynamic")
 @external(javascript, "./tom_ffi.mjs", "nan_from_dynamic")
-fn nan_from_dynamic(dynamic: Dynamic) -> Result(NanValue, NanValue)
+fn nan_from_dynamic(dynamic: Dynamic) -> Result(Sign, Sign)
 
 @external(erlang, "tom_ffi", "infinity_to_dynamic")
 @external(javascript, "./tom_ffi.mjs", "infinity_to_dynamic")
-fn infinity_to_dynamic(infinity: InfinityValue) -> Dynamic
+fn infinity_to_dynamic(sigh: Sign) -> Dynamic
 
 @external(erlang, "tom_ffi", "infinity_from_dynamic")
 @external(javascript, "./tom_ffi.mjs", "infinity_from_dynamic")
-fn infinity_from_dynamic(
-  infinity: Dynamic,
-) -> Result(InfinityValue, InfinityValue)
+fn infinity_from_dynamic(infinity: Dynamic) -> Result(Sign, Sign)
 
 fn date_to_dynamic(date: calendar.Date) -> Dynamic {
   dynamic.properties([

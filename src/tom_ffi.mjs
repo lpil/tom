@@ -4,19 +4,13 @@ import {
   Sign$Negative,
   Sign$isPositive,
   Sign$isNegative,
-  InfinityValue$InfinityValue$sign,
-  InfinityValue$InfinityValue,
-  NanValue$NanValue$sign,
-  NanValue$NanValue,
 } from "./tom.mjs";
 
 // We can't represent positive/negative NaNs in JS so we must have a representation for them
 const negativeNaN = Symbol("-NaN");
 const positiveNaN = Symbol("+NaN");
 
-export function nan_to_dynamic(nan_value) {
-  let sign = NanValue$NanValue$sign(nan_value);
-
+export function nan_to_dynamic(sign) {
   if (Sign$isPositive(sign)) {
     return positiveNaN;
   } else if (Sign$isNegative(sign)) {
@@ -29,18 +23,16 @@ export function nan_to_dynamic(nan_value) {
 
 export function nan_from_dynamic(value) {
   if (value == positiveNaN) {
-    return Result$Ok(NanValue$NanValue(Sign$Positive()));
+    return Result$Ok(Sign$Positive());
   } else if (value == negativeNaN) {
-    return Result$Ok(NanValue$NanValue(Sign$Negative()));
+    return Result$Ok(Sign$Negative());
   } else {
     // Value here is a placeholder
-    return Result$Error(NanValue$NanValue(Sign$Positive()));
+    return Result$Error(Sign$Positive());
   }
 }
 
-export function infinity_to_dynamic(infinity_value) {
-  let sign = InfinityValue$InfinityValue$sign(infinity_value);
-
+export function infinity_to_dynamic(sign) {
   if (Sign$isPositive(sign)) {
     return Infinity;
   } else if (Sign$isNegative(sign)) {
@@ -53,11 +45,11 @@ export function infinity_to_dynamic(infinity_value) {
 
 export function infinity_from_dynamic(value) {
   if (value == Infinity) {
-    return Result$Ok(InfinityValue$InfinityValue(Sign$Positive()));
+    return Result$Ok(Sign$Positive());
   } else if (value == -Infinity) {
-    return Result$Ok(InfinityValue$InfinityValue(Sign$Negative()));
+    return Result$Ok(Sign$Negative());
   } else {
     // Value here is a placeholder
-    return Result$Error(NanValue$NanValue(Sign$Positive()));
+    return Result$Error(Sign$Positive());
   }
 }
