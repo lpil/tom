@@ -1563,7 +1563,7 @@ pub fn as_timestamp(toml: Toml) -> Result(timestamp.Timestamp, GetError) {
   }
 }
 
-/// Get a datetime from a TOML document.
+/// Get a date time from a TOML document.
 ///
 /// ## Examples
 ///
@@ -1752,7 +1752,7 @@ pub fn calendar_date_time_decoder() -> Decoder(
   decode.success(#(date, time, offset))
 }
 
-/// A decoder that decodes TOML datetime into an unambiguous timestamp
+/// A decoder that decodes TOML date time into an unambiguous timestamp
 ///
 /// If a TOML date time has no offset it is ambiguous and cannot be converted
 /// into a timestamp. There's no way to know what actual point in time it would
