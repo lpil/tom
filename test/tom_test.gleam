@@ -4,7 +4,6 @@ import gleam/int
 import gleam/list
 import gleam/order
 import gleam/result
-import gleam/string
 import gleam/time/calendar
 import gleam/time/duration
 import gleam/time/timestamp
@@ -1193,21 +1192,9 @@ pub fn to_dynamic_table_test() {
     decode.success(a_table_field)
   }
 
-  let decoded =
-    dynamic
-    |> decode.run(decoder)
-    |> result.map(fn(value) {
-      value
-      |> dict.to_list()
-      |> list.sort(fn(a, b) {
-        let #(a_1, a_2) = a
-        let #(b_1, b_2) = b
+  let decoded = decode.run(dynamic, decoder)
 
-        order.break_tie(string.compare(a_1, b_1), int.compare(a_2, b_2))
-      })
-    })
-
-  assert decoded == Ok([#("a", 1), #("b", 2), #("c", 3)])
+  assert decoded == Ok(dict.from_list([#("a", 1), #("b", 2), #("c", 3)]))
 }
 
 pub fn to_dynamic_inline_table_test() {
@@ -1222,21 +1209,9 @@ pub fn to_dynamic_inline_table_test() {
     decode.success(a_table_field)
   }
 
-  let decoded =
-    dynamic
-    |> decode.run(decoder)
-    |> result.map(fn(value) {
-      value
-      |> dict.to_list()
-      |> list.sort(fn(a, b) {
-        let #(a_1, a_2) = a
-        let #(b_1, b_2) = b
+  let decoded = decode.run(dynamic, decoder)
 
-        order.break_tie(string.compare(a_1, b_1), int.compare(a_2, b_2))
-      })
-    })
-
-  assert decoded == Ok([#("a", 1), #("b", 2), #("c", 3)])
+  assert decoded == Ok(dict.from_list([#("a", 1), #("b", 2), #("c", 3)]))
 }
 
 pub fn to_dynamic_array_of_tables_test() {
@@ -1303,7 +1278,7 @@ pub fn to_dynamic_time_test() {
   let assert Ok(parsed) = tom.parse("a = 07:32:01")
   let dynamic = tom.to_dynamic(parsed)
   let decoder = {
-    use a_field <- decode.field("a", tom.time_decoder())
+    use a_field <- decode.field("a", tom.time_of_day_decoder())
     decode.success(a_field)
   }
 
@@ -1315,7 +1290,7 @@ pub fn to_dynamic_datetime_test() {
   let assert Ok(parsed) = tom.parse("a = 1979-05-27T07:32:00Z")
   let dynamic = tom.to_dynamic(parsed)
   let decoder = {
-    use a_field <- decode.field("a", tom.calendar_date_time_decoder())
+    use a_field <- decode.field("a", tom.calendar_date_time_of_day_decoder())
     decode.success(a_field)
   }
 
@@ -1331,7 +1306,7 @@ pub fn to_dynamic_datetime_local_offset_test() {
   let assert Ok(parsed) = tom.parse("a = 1979-05-27T07:32:00")
   let dynamic = tom.to_dynamic(parsed)
   let decoder = {
-    use a_field <- decode.field("a", tom.calendar_date_time_decoder())
+    use a_field <- decode.field("a", tom.calendar_date_time_of_day_decoder())
     decode.success(a_field)
   }
 
@@ -1347,7 +1322,7 @@ pub fn to_dynamic_datetime_numeric_offset_offset_test() {
   let assert Ok(parsed) = tom.parse("a = 1979-05-27T07:32:00-05:00")
   let dynamic = tom.to_dynamic(parsed)
   let decoder = {
-    use a_field <- decode.field("a", tom.calendar_date_time_decoder())
+    use a_field <- decode.field("a", tom.calendar_date_time_of_day_decoder())
     decode.success(a_field)
   }
 
