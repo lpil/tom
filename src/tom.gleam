@@ -1700,8 +1700,8 @@ pub fn as_number(toml: Toml) -> Result(Number, GetError) {
 /// ```
 pub fn number_decoder() -> Decoder(Number) {
   decode.one_of(decode.map(decode.int, NumberInt), or: [
-    decode.map(nan_decoder(), fn(sign) { NumberNan(sign) }),
-    decode.map(infinity_decoder(), fn(sign) { NumberInfinity(sign) }),
+    decode.map(nan_decoder(), NumberNan),
+    decode.map(infinity_decoder(), NumberInfinity),
     // This must come _after_ the infinity decoder, as the stdlib implementation
     // will attempt to decode Infinity as a float
     decode.map(decode.float, NumberFloat),
@@ -1716,12 +1716,12 @@ pub fn number_decoder() -> Decoder(Number) {
 /// let assert Ok(toml) = tom.parse_to_dynamic("future = 2015-10-21")
 /// decode.run(toml, decode.dict(decode.string, tom.date_decoder())))
 /// // -> Ok(
-/// //      dict.from_list([
-/// //        #("future", calendar.Date(
-/// //          year: 2015, month: calendar.October, day: 21
-/// //        )),
-/// //      ])
-/// //    )
+/// //    dict.from_list([
+/// //      #("future", calendar.Date(
+/// //        year: 2015, month: calendar.October, day: 21
+/// //      )),
+/// //    ])
+/// //  )
 /// ```
 ///
 pub fn date_decoder() -> Decoder(calendar.Date) {
@@ -1740,12 +1740,12 @@ pub fn date_decoder() -> Decoder(calendar.Date) {
 /// let assert Ok(toml) = tom.parse_to_dynamic("time = 07:28:00")
 /// decode.run(toml, decode.dict(decode.string, tom.time_decoder())))
 /// // -> Ok(
-/// //      dict.from_list([
-/// //        #("time", calendar.TimeOfDay(
-/// //          hours: 7, minutes: 28, seconds: 0, nanoseconds: 0
-/// //        ))
-/// //      ])
-/// //    )
+/// //    dict.from_list([
+/// //      #("time", calendar.TimeOfDay(
+/// //        hours: 7, minutes: 28, seconds: 0, nanoseconds: 0
+/// //      ))
+/// //    ])
+/// //  )
 /// ```
 ///
 pub fn time_decoder() -> Decoder(calendar.TimeOfDay) {
