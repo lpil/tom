@@ -1744,14 +1744,14 @@ pub fn time_of_day_decoder() -> Decoder(calendar.TimeOfDay) {
 /// let assert Ok(toml) = tom.parse_to_dynamic("datetime = 2015-10-21T07:28:00")
 /// decode.run(toml, decode.dict(decode.string, tom.calendar_date_time_of_day_decoder()))
 /// // -> Ok(
-/// //      dict.from_list([
-/// //        #("datetime", #(
-/// //          calendar.Date(year: 2015, month: calendar.October, day: 21),
-/// //          calendar.TimeOfDay(hours: 7, minutes: 28, seconds: 0, nanoseconds: 0),
-/// //          tom.Local
-/// //        ))
-/// //      ])
-/// //    )
+/// //    dict.from_list([
+/// //      #("datetime", #(
+/// //        calendar.Date(2015, calendar.October, 21),
+/// //        calendar.TimeOfDay(7, 28, 0, 0),
+/// //        tom.Local
+/// //      ))
+/// //    ])
+/// //  )
 /// ```
 ///
 pub fn calendar_date_time_of_day_decoder() -> Decoder(
