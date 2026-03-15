@@ -1,8 +1,5 @@
 import gleam/dict
 import gleam/dynamic/decode
-import gleam/int
-import gleam/list
-import gleam/order
 import gleam/result
 import gleam/time/calendar
 import gleam/time/duration
@@ -1364,19 +1361,8 @@ pub fn to_dynamic_array_of_tables_test() {
     decode.success(a_field)
   }
 
-  let decoded =
-    dynamic
-    |> decode.run(decode)
-    |> result.map(fn(value) {
-      list.sort(value, fn(a, b) {
-        let #(a_1, a_2, a_3) = a
-        let #(b_1, b_2, b_3) = b
+  let decoded = decode.run(dynamic, decode)
 
-        int.compare(a_1, b_1)
-        |> order.break_tie(int.compare(a_2, b_2))
-        |> order.break_tie(int.compare(a_3, b_3))
-      })
-    })
   assert decoded == Ok([#(1, 2, 3), #(4, 5, 6), #(7, 8, 9)])
 }
 
