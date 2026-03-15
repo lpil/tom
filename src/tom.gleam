@@ -148,6 +148,7 @@ pub fn get(
 /// decode.run(dynamic, decoder)
 /// // -> Ok(#("Lucy", 5))
 /// ```
+///
 pub fn to_dynamic(toml: Dict(String, Toml)) -> Dynamic {
   table_to_dynamic(toml)
 }
@@ -173,6 +174,7 @@ pub fn to_dynamic(toml: Dict(String, Toml)) -> Dynamic {
 /// decode.run(dynamic, decoder)
 /// // -> Ok(#("Lucy", 5))
 /// ```
+///
 pub fn parse_to_dynamic(input: String) -> Result(Dynamic, ParseError) {
   input
   |> parse()
