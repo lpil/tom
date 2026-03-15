@@ -1738,7 +1738,7 @@ pub fn date_decoder() -> Decoder(calendar.Date) {
 ///
 /// ```gleam
 /// let assert Ok(toml) = tom.parse_to_dynamic("time = 07:28:00")
-/// decode.run(toml, decode.dict(decode.string, tom.time_decoder())))
+/// decode.run(toml, decode.dict(decode.string, tom.time_of_day_decoder())))
 /// // -> Ok(
 /// //    dict.from_list([
 /// //      #("time", calendar.TimeOfDay(
@@ -1748,7 +1748,7 @@ pub fn date_decoder() -> Decoder(calendar.Date) {
 /// //  )
 /// ```
 ///
-pub fn time_decoder() -> Decoder(calendar.TimeOfDay) {
+pub fn time_of_day_decoder() -> Decoder(calendar.TimeOfDay) {
   use hours <- decode.field("hours", decode.int)
   use minutes <- decode.field("minutes", decode.int)
   use seconds <- decode.field("seconds", decode.int)
@@ -1764,7 +1764,7 @@ pub fn time_decoder() -> Decoder(calendar.TimeOfDay) {
 ///
 /// ```gleam
 /// let assert Ok(toml) = tom.parse_to_dynamic("datetime = 2015-10-21T07:28:00")
-/// decode.run(toml, decode.dict(decode.string, tom.calendar_date_time_decoder()))
+/// decode.run(toml, decode.dict(decode.string, tom.calendar_date_time_of_day_decoder()))
 /// // -> Ok(
 /// //      dict.from_list([
 /// //        #("datetime", #(
@@ -1776,11 +1776,11 @@ pub fn time_decoder() -> Decoder(calendar.TimeOfDay) {
 /// //    )
 /// ```
 ///
-pub fn calendar_date_time_decoder() -> Decoder(
+pub fn calendar_date_time_of_day_decoder() -> Decoder(
   #(calendar.Date, calendar.TimeOfDay, Offset),
 ) {
   use date <- decode.field("date", date_decoder())
-  use time <- decode.field("time", time_decoder())
+  use time <- decode.field("time", time_of_day_decoder())
   use offset <- decode.field("offset", offset_decoder())
 
   decode.success(#(date, time, offset))
@@ -1801,7 +1801,7 @@ pub fn calendar_date_time_decoder() -> Decoder(
 /// ```
 ///
 pub fn timestamp_decoder() -> Decoder(timestamp.Timestamp) {
-  use calendar_date_time <- decode.then(calendar_date_time_decoder())
+  use calendar_date_time <- decode.then(calendar_date_time_of_day_decoder())
 
   case calendar_date_time {
     #(date, time, Offset(offset)) ->
