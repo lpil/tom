@@ -1439,6 +1439,7 @@ fn parse_offset_hours(input: Tokens, sign: Sign) -> Parsed(Offset) {
 /// as_int(Float(1.4))
 /// // -> Error(WrongType([], "Int", "Float"))
 /// ```
+///
 pub fn as_int(toml: Toml) -> Result(Int, GetError) {
   case toml {
     Int(f) -> Ok(f)
@@ -1459,6 +1460,7 @@ pub fn as_int(toml: Toml) -> Result(Int, GetError) {
 /// as_float(Int(1))
 /// // -> Error(WrongType([], "Float", "Int"))
 /// ```
+///
 pub fn as_float(toml: Toml) -> Result(Float, GetError) {
   case toml {
     Float(f) -> Ok(f)
@@ -1479,6 +1481,7 @@ pub fn as_float(toml: Toml) -> Result(Float, GetError) {
 /// as_bool(Int(1))
 /// // -> Error(WrongType([], "Bool", "Int"))
 /// ```
+///
 pub fn as_bool(toml: Toml) -> Result(Bool, GetError) {
   case toml {
     Bool(b) -> Ok(b)
@@ -1499,6 +1502,7 @@ pub fn as_bool(toml: Toml) -> Result(Bool, GetError) {
 /// as_string(Int(1))
 /// // -> Error(WrongType([], "String", "Int"))
 /// ```
+///
 pub fn as_string(toml: Toml) -> Result(String, GetError) {
   case toml {
     String(s) -> Ok(s)
@@ -1519,6 +1523,7 @@ pub fn as_string(toml: Toml) -> Result(String, GetError) {
 /// as_date(Int(1))
 /// // -> Error(WrongType([], "Date", "Int"))
 /// ```
+///
 pub fn as_date(toml: Toml) -> Result(calendar.Date, GetError) {
   case toml {
     Date(d) -> Ok(d)
@@ -1539,6 +1544,7 @@ pub fn as_date(toml: Toml) -> Result(calendar.Date, GetError) {
 /// as_time_of_day(Int(1))
 /// // -> Error(WrongType([], "Time", "Int"))
 /// ```
+///
 pub fn as_time_of_day(toml: Toml) -> Result(calendar.TimeOfDay, GetError) {
   case toml {
     Time(t) -> Ok(t)
@@ -1554,6 +1560,7 @@ pub fn as_time_of_day(toml: Toml) -> Result(calendar.TimeOfDay, GetError) {
 /// as_timestamp(Int(1))
 /// // -> Error(WrongType([], "DateTime with offset", "Int"))
 /// ```
+///
 pub fn as_timestamp(toml: Toml) -> Result(timestamp.Timestamp, GetError) {
   case toml {
     DateTime(date:, time:, offset: Offset(offset)) ->
@@ -1576,6 +1583,7 @@ pub fn as_timestamp(toml: Toml) -> Result(timestamp.Timestamp, GetError) {
 /// as_calendar_time(Int(1))
 /// // -> Error(WrongType([], "DateTime", "Int"))
 /// ```
+///
 pub fn as_calendar_time(
   toml: Toml,
 ) -> Result(#(calendar.Date, calendar.TimeOfDay, Offset), GetError) {
@@ -1598,6 +1606,7 @@ pub fn as_calendar_time(
 /// as_array(Int(1))
 /// // -> Error(WrongType([], "Array", "Int"))
 /// ```
+///
 pub fn as_array(toml: Toml) -> Result(List(Toml), GetError) {
   case toml {
     Array(arr) -> Ok(arr)
@@ -1618,6 +1627,7 @@ pub fn as_array(toml: Toml) -> Result(List(Toml), GetError) {
 /// as_table(Int(1))
 /// // -> Error(WrongType([], "Table", "Int"))
 /// ```
+///
 pub fn as_table(toml: Toml) -> Result(Dict(String, Toml), GetError) {
   case toml {
     Table(tbl) -> Ok(tbl)
@@ -1644,6 +1654,7 @@ pub fn as_table(toml: Toml) -> Result(Dict(String, Toml), GetError) {
 /// as_number(Bool(true))
 /// // -> Error(WrongType([], "Number", "Bool"))
 /// ```
+///
 pub fn as_number(toml: Toml) -> Result(Number, GetError) {
   case toml {
     Int(x) -> Ok(NumberInt(x))
@@ -1664,6 +1675,7 @@ pub fn as_number(toml: Toml) -> Result(Number, GetError) {
 /// decode.run(toml, decode.dict(decode.string, tom.number_decoder())))
 /// // -> Ok(dict.from_list([#("lucy", tom.NumberInt(1337))]))
 /// ```
+///
 pub fn number_decoder() -> Decoder(Number) {
   decode.one_of(decode.map(decode.int, NumberInt), or: [
     decode.map(nan_decoder(), NumberNan),
