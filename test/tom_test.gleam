@@ -1348,22 +1348,21 @@ pub fn to_dynamic_array_of_tables_test() {
     )
 
   let dynamic = tom.to_dynamic(parsed)
-  let decode_table = {
-    use a_field <- decode.field("a", decode.int)
-    use b_field <- decode.field("b", decode.int)
-    use c_field <- decode.field("c", decode.int)
-
-    decode.success(#(a_field, b_field, c_field))
-  }
 
   let decode = {
+    let decode_table = decode.dict(decode.string, decode.int)
     use a_field <- decode.field("a", decode.list(decode_table))
     decode.success(a_field)
   }
 
   let decoded = decode.run(dynamic, decode)
 
-  assert decoded == Ok([#(1, 2, 3), #(4, 5, 6), #(7, 8, 9)])
+  assert decoded
+    == Ok([
+      dict.from_list([#("a", 1), #("b", 2), #("c", 3)]),
+      dict.from_list([#("a", 4), #("b", 5), #("c", 6)]),
+      dict.from_list([#("a", 7), #("b", 8), #("c", 9)]),
+    ])
 }
 
 pub fn to_dynamic_date_test() {
