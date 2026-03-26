@@ -1,5 +1,9 @@
 # Changelog
 
+## v2.0.2 - 2026-03-26
+
+- Fixed a bug where multi-line strings containing `#` could parse incorrectly.
+
 ## v2.0.1 - 2026-01-13
 
 - Fixed a bug where the '#' symbol in ''' strings would be treated like a

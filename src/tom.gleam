@@ -405,7 +405,7 @@ fn push_key(result: Result(t, GetError), key: String) -> Result(t, GetError) {
 
 pub fn parse(input: String) -> Result(Dict(String, Toml), ParseError) {
   let input = string.to_graphemes(input)
-  let input = drop_comments(input, [], False)
+  let input = drop_comments(input, [], NotInString)
   let input = skip_whitespace(input)
   use toml, input <- do(parse_table(input, dict.new()))
   case parse_tables(input, toml) {
@@ -704,19 +704,53 @@ fn skip_whitespace(input: Tokens) -> Tokens {
   }
 }
 
-fn drop_comments(input: Tokens, acc: Tokens, in_string: Bool) -> Tokens {
+type StringState {
+  // Not currently inside any string
+  NotInString
+  // Inside a "..." double-quoted string
+  InDoubleString
+  // Inside a """...""" multiline double-quoted string
+  InMultilineDoubleString
+  // Inside a '...' single-quoted string
+  InSingleString
+  // Inside a '''...''' multiline single-quoted string
+  InMultilineSingleString
+}
+
+fn drop_comments(input: Tokens, acc: Tokens, state: StringState) -> Tokens {
   case input {
-    ["\\", "\"", ..input] if in_string ->
-      drop_comments(input, ["\"", "\\", ..acc], in_string)
-    ["\"", ..input] -> drop_comments(input, ["\"", ..acc], !in_string)
-    ["'", "'", "'", ..input] ->
-      drop_comments(input, ["'", "'", "'", ..acc], !in_string)
-    ["#", ..input] if in_string -> drop_comments(input, ["#", ..acc], in_string)
-    ["#", ..input] if !in_string ->
+    ["#", ..input] if state == NotInString ->
       input
       |> list.drop_while(fn(g) { g != "\n" })
-      |> drop_comments(acc, in_string)
-    [g, ..input] -> drop_comments(input, [g, ..acc], in_string)
+      |> drop_comments(acc, NotInString)
+
+    ["\\", "\"", ..input] if state == InDoubleString ->
+      drop_comments(input, ["\"", "\\", ..acc], state)
+    ["\\", "\"", ..input] if state == InMultilineDoubleString ->
+      drop_comments(input, ["\"", "\\", ..acc], state)
+
+    ["\"", "\"", "\"", ..input] if state == NotInString ->
+      drop_comments(input, ["\"", "\"", "\"", ..acc], InMultilineDoubleString)
+    ["\"", "\"", "\"", ..input] if state == InMultilineDoubleString ->
+      drop_comments(input, ["\"", "\"", "\"", ..acc], NotInString)
+
+    ["\"", ..input] if state == NotInString ->
+      drop_comments(input, ["\"", ..acc], InDoubleString)
+    ["\"", ..input] if state == InDoubleString ->
+      drop_comments(input, ["\"", ..acc], NotInString)
+
+    ["\"", ..input] -> drop_comments(input, ["\"", ..acc], state)
+    ["'", "'", "'", ..input] if state == NotInString ->
+      drop_comments(input, ["'", "'", "'", ..acc], InMultilineSingleString)
+    ["'", "'", "'", ..input] if state == InMultilineSingleString ->
+      drop_comments(input, ["'", "'", "'", ..acc], NotInString)
+    ["'", ..input] if state == NotInString ->
+      drop_comments(input, ["'", ..acc], InSingleString)
+    ["'", ..input] if state == InSingleString ->
+      drop_comments(input, ["'", ..acc], NotInString)
+    ["'", ..input] -> drop_comments(input, ["'", ..acc], state)
+
+    [g, ..input] -> drop_comments(input, [g, ..acc], state)
     [] -> list.reverse(acc)
   }
 }

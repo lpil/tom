@@ -844,6 +844,65 @@ field = \"#\"",
     == Ok(expected)
 }
 
+pub fn parse_multi_line_string_newline_test() {
+  let expected =
+    dict.from_list([
+      #("contents", tom.String("Hello, Joe!\n")),
+    ])
+  assert tom.parse(
+      "contents = \"\"\"
+Hello, Joe!
+\"\"\"
+",
+    )
+    == Ok(expected)
+}
+
+pub fn parse_single_string_test() {
+  let expected =
+    dict.from_list([
+      #("contents", tom.String("Hello, Joe!")),
+    ])
+  assert tom.parse(
+      "contents = 'Hello, Joe!'
+",
+    )
+    == Ok(expected)
+}
+
+pub fn parse_multi_line_single_string_newline_test() {
+  let expected =
+    dict.from_list([
+      #("contents", tom.String("Hello, Joe!\n")),
+    ])
+  assert tom.parse(
+      "contents = '''
+Hello, Joe!
+'''
+",
+    )
+    == Ok(expected)
+}
+
+pub fn parse_multi_line_string_with_hash_test() {
+  let expected =
+    dict.from_list([
+      #(
+        "contents",
+        tom.String(
+          "document.querySelector(\"#app\").textContent = \"hello\";\n",
+        ),
+      ),
+    ])
+  assert tom.parse(
+      "contents = \"\"\"
+document.querySelector(\"#app\").textContent = \"hello\";
+\"\"\"
+",
+    )
+    == Ok(expected)
+}
+
 pub fn get_data_in_table_and_inline_table_test() {
   let toml =
     "section = { field = \"data\" }
