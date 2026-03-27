@@ -1,4 +1,5 @@
 import gleam/dict
+import gleam/io
 import gleam/result
 import gleam/time/calendar
 import gleam/time/duration
@@ -41,9 +42,23 @@ pub fn parse_true_test() {
   assert tom.parse("cool = true\n") == Ok(expected)
 }
 
+pub fn serialize_true_test() {
+  let expected = "cool = true\n"
+  dict.from_list([#("cool", tom.Bool(True))])
+  |> tom.serialize
+  |> should.equal(expected)
+}
+
 pub fn parse_false_test() {
   let expected = dict.from_list([#("cool", tom.Bool(False))])
   assert tom.parse("cool = false\n") == Ok(expected)
+}
+
+pub fn serialize_false_test() {
+  let expected = "cool = false\n"
+  dict.from_list([#("cool", tom.Bool(False))])
+  |> tom.serialize
+  |> should.equal(expected)
 }
 
 pub fn parse_unicode_key_test() {
@@ -54,6 +69,13 @@ pub fn parse_unicode_key_test() {
 pub fn parse_int_test() {
   let expected = dict.from_list([#("it", tom.Int(1))])
   assert tom.parse("it = 1\n") == Ok(expected)
+}
+
+pub fn serialize_int_test() {
+  let expected = "it = 1\n"
+  dict.from_list([#("it", tom.Int(1))])
+  |> tom.serialize
+  |> should.equal(expected)
 }
 
 pub fn parse_int_underscored_test() {
@@ -71,9 +93,23 @@ pub fn parse_int_negative_test() {
   assert tom.parse("it = -234\n") == Ok(expected)
 }
 
+pub fn serialize_int_negative_test() {
+  let expected = "it = -234\n"
+  dict.from_list([#("it", tom.Int(-234))])
+  |> tom.serialize
+  |> should.equal(expected)
+}
+
 pub fn parse_string_test() {
   let expected = dict.from_list([#("hello", tom.String("Joe"))])
   assert tom.parse("hello = \"Joe\"\n") == Ok(expected)
+}
+
+pub fn serialize_string_test() {
+  let expected = "hello = \"Joe\"\n"
+  dict.from_list([#("hello", tom.String("Joe"))])
+  |> tom.serialize
+  |> should.equal(expected)
 }
 
 pub fn parse_string_escaped_quote_test() {
@@ -106,9 +142,23 @@ pub fn parse_float_test() {
   assert tom.parse("it = 1.0\n") == Ok(expected)
 }
 
+pub fn serialize_float_test() {
+  let expected = "it = 1.0\n"
+  dict.from_list([#("it", tom.Float(1.0))])
+  |> tom.serialize
+  |> should.equal(expected)
+}
+
 pub fn parse_bigger_float_test() {
   let expected = dict.from_list([#("it", tom.Float(123_456_789.9876))])
   assert tom.parse("it = 123456789.9876\n") == Ok(expected)
+}
+
+pub fn serialize_bigger_float_test() {
+  let expected = "it = 123456789.9876\n"
+  dict.from_list([#("it", tom.Float(123_456_789.9876))])
+  |> tom.serialize
+  |> should.equal(expected)
 }
 
 pub fn parse_multi_segment_key_test() {
@@ -124,6 +174,22 @@ pub fn parse_multi_segment_key_test() {
       ),
     ])
   assert tom.parse("one.two.three = true\n") == Ok(expected)
+}
+
+pub fn serialize_multi_segment_key_test() {
+  let expected = "one.two.three = true\n\n"
+  dict.from_list([
+    #(
+      "one",
+      tom.Table(
+        dict.from_list([
+          #("two", tom.Table(dict.from_list([#("three", tom.Bool(True))]))),
+        ]),
+      ),
+    ),
+  ])
+  |> tom.serialize
+  |> should.equal(expected)
 }
 
 pub fn parse_multi_segment_key_with_spaeces_test() {
@@ -161,6 +227,13 @@ pub fn parse_multiple_keys_test() {
   assert tom.parse("a = 1\nb = 2\n") == Ok(expected)
 }
 
+pub fn serialize_multiple_keys_test() {
+  let expected = "a = 1\nb = 2\n"
+  dict.from_list([#("a", tom.Int(1)), #("b", tom.Int(2))])
+  |> tom.serialize
+  |> should.equal(expected)
+}
+
 pub fn parse_duplicate_key_test() {
   assert tom.parse("a = 1\na = 2\n") == Error(tom.KeyAlreadyInUse(["a"]))
 }
@@ -174,9 +247,23 @@ pub fn parse_empty_array_test() {
   assert tom.parse("a = []\n") == Ok(expected)
 }
 
+pub fn serialize_empty_array_test() {
+  let expected = "a = []\n"
+  dict.from_list([#("a", tom.Array([]))])
+  |> tom.serialize
+  |> should.equal(expected)
+}
+
 pub fn parse_array_test() {
   let expected = dict.from_list([#("a", tom.Array([tom.Int(1), tom.Int(2)]))])
   assert tom.parse("a = [1, 2]\n") == Ok(expected)
+}
+
+pub fn serialize_array_test() {
+  let expected = "a = [1, 2]\n"
+  dict.from_list([#("a", tom.Array([tom.Int(1), tom.Int(2)]))])
+  |> tom.serialize
+  |> should.equal(expected)
 }
 
 pub fn parse_multi_line_array_test() {
@@ -187,6 +274,13 @@ pub fn parse_multi_line_array_test() {
 pub fn parse_table_test() {
   let expected = dict.from_list([#("a", tom.Table(dict.from_list([])))])
   assert tom.parse("[a]\n") == Ok(expected)
+}
+
+pub fn serialize_table_test() {
+  let expected = "[a]\n\n"
+  dict.from_list([#("a", tom.Table(dict.from_list([])))])
+  |> tom.serialize
+  |> should.equal(expected)
 }
 
 pub fn parse_table_with_values_test() {
@@ -209,6 +303,23 @@ b.c = 2
 ",
     )
     == Ok(expected)
+}
+
+pub fn serialize_table_with_values_test() {
+  let expected = "[a]\na = 1\nb.c = 2\n\n"
+  dict.from_list([
+    #(
+      "a",
+      tom.Table(
+        dict.from_list([
+          #("a", tom.Int(1)),
+          #("b", tom.Table(dict.from_list([#("c", tom.Int(2))]))),
+        ]),
+      ),
+    ),
+  ])
+  |> tom.serialize
+  |> should.equal(expected)
 }
 
 pub fn parse_table_with_values_before_test() {
@@ -236,6 +347,25 @@ b.c = 2
 ",
     )
     == Ok(expected)
+}
+
+pub fn serialize_table_with_values_before_test() {
+  let expected = "name = \"Joe\"\nsize = 123\n\n[a]\na = 1\nb.c = 2\n\n"
+  dict.from_list([
+    #("name", tom.String("Joe")),
+    #("size", tom.Int(123)),
+    #(
+      "a",
+      tom.Table(
+        dict.from_list([
+          #("a", tom.Int(1)),
+          #("b", tom.Table(dict.from_list([#("c", tom.Int(2))]))),
+        ]),
+      ),
+    ),
+  ])
+  |> tom.serialize
+  |> should.equal(expected)
 }
 
 pub fn parse_multiple_tables_test() {
@@ -269,9 +399,46 @@ a = 1
     == Ok(expected)
 }
 
+pub fn serialize_multiple_tables_test() {
+  let expected =
+    "name = \"Joe\"
+size = 123
+
+b.a = 1
+
+[a]
+a = 1
+b.c = 2
+
+"
+  dict.from_list([
+    #("name", tom.String("Joe")),
+    #("size", tom.Int(123)),
+    #(
+      "a",
+      tom.Table(
+        dict.from_list([
+          #("a", tom.Int(1)),
+          #("b", tom.Table(dict.from_list([#("c", tom.Int(2))]))),
+        ]),
+      ),
+    ),
+    #("b", tom.Table(dict.from_list([#("a", tom.Int(1))]))),
+  ])
+  |> tom.serialize
+  |> should.equal(expected)
+}
+
 pub fn parse_inline_table_empty_test() {
   let expected = dict.from_list([#("a", tom.InlineTable(dict.from_list([])))])
   assert tom.parse("a = {}\n") == Ok(expected)
+}
+
+pub fn serialize_inline_table_empty_test() {
+  let expected = "a = {}\n"
+  dict.from_list([#("a", tom.InlineTable(dict.from_list([])))])
+  |> tom.serialize
+  |> should.equal(expected)
 }
 
 pub fn parse_inline_table_test() {
@@ -295,6 +462,28 @@ pub fn parse_inline_table_test() {
 ",
     )
     == Ok(expected)
+}
+
+pub fn serialize_inline_table_test() {
+  let expected =
+    "a = {
+  a = 1,
+  b.c = 2
+}
+"
+  dict.from_list([
+    #(
+      "a",
+      tom.InlineTable(
+        dict.from_list([
+          #("a", tom.Int(1)),
+          #("b", tom.Table(dict.from_list([#("c", tom.Int(2))]))),
+        ]),
+      ),
+    ),
+  ])
+  |> tom.serialize
+  |> should.equal(expected)
 }
 
 pub fn parse_inline_trailing_comma_table_test() {
@@ -1063,4 +1252,11 @@ pub fn get_timestamp_test() {
   let assert Ok(parsed) = tom.parse("a = 1")
   assert tom.get_timestamp(parsed, ["a", "b", "c"])
     == Error(tom.WrongType(["a"], "Table", "Int"))
+}
+
+pub fn array_to_string_test() {
+  let expected = "[123, true, \"test\"]"
+  let content = [tom.Int(123), tom.Bool(True), tom.String("test")]
+  tom.serialize_array(content)
+  |> should.equal(expected)
 }
