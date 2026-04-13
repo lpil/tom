@@ -1,3 +1,4 @@
+import gleam/float
 import gleam/int
 import gleam/list
 import gleam/option.{type Option, None, Some}
@@ -213,6 +214,31 @@ fn lex_number(
       lex_float(step(lexer, src), float, 0.1, text <> ".")
     }
 
+    "e+" <> src -> {
+      let float = int.to_float(int)
+      lex_exponent(step(lexer, src), float, text <> "e+", 0, Positive)
+    }
+    "e-" <> src -> {
+      let float = int.to_float(int)
+      lex_exponent(step(lexer, src), float, text <> "e-", 0, Negative)
+    }
+    "e" <> src -> {
+      let float = int.to_float(int)
+      lex_exponent(step(lexer, src), float, text <> "e", 0, Positive)
+    }
+    "E+" <> src -> {
+      let float = int.to_float(int)
+      lex_exponent(step(lexer, src), float, text <> "E+", 0, Positive)
+    }
+    "E-" <> src -> {
+      let float = int.to_float(int)
+      lex_exponent(step(lexer, src), float, text <> "E-", 0, Negative)
+    }
+    "E" <> src -> {
+      let float = int.to_float(int)
+      lex_exponent(step(lexer, src), float, text <> "E", 0, Positive)
+    }
+
     src -> {
       let value = case text {
         "-" <> _ -> -int
@@ -269,12 +295,19 @@ fn lex_float(
       lex_float(step(lexer, src), float, unit *. 0.1, text <> "9")
     }
 
-    // ["e", "+", ..src] -> parse_exponent(src, number, sign, 0, Positive)
-    // ["e", "-", ..src] -> parse_exponent(src, number, sign, 0, Negative)
-    // ["e", ..src] -> parse_exponent(src, number, sign, 0, Positive)
-    // ["E", "+", ..src] -> parse_exponent(src, number, sign, 0, Positive)
-    // ["E", "-", ..src] -> parse_exponent(src, number, sign, 0, Negative)
-    // ["E", ..src] -> parse_exponent(src, number, sign, 0, Positive)
+    "e+" <> src ->
+      lex_exponent(step(lexer, src), float, text <> "e+", 0, Positive)
+    "e-" <> src ->
+      lex_exponent(step(lexer, src), float, text <> "e-", 0, Negative)
+    "e" <> src ->
+      lex_exponent(step(lexer, src), float, text <> "e", 0, Positive)
+    "E+" <> src ->
+      lex_exponent(step(lexer, src), float, text <> "E+", 0, Positive)
+    "E-" <> src ->
+      lex_exponent(step(lexer, src), float, text <> "E-", 0, Negative)
+    "E" <> src ->
+      lex_exponent(step(lexer, src), float, text <> "E", 0, Positive)
+
     _ if unit == 0.1 -> Error(IncompleteFloat(lexer.position - 1))
 
     src -> {
@@ -283,6 +316,79 @@ fn lex_float(
         _ -> float
       }
       lexed(lexer, src, FloatToken(text, value:))
+    }
+  }
+}
+
+fn lex_exponent(
+  lexer: Lexer,
+  n: Float,
+  text: String,
+  ex: Int,
+  sign: Sign,
+) -> Result(#(Lexer, Token), TomlError) {
+  case lexer.src {
+    "_" <> src -> {
+      let lexer = step(lexer, src)
+      lex_exponent(lexer, n, text <> "_", ex, sign)
+    }
+    "0" <> src -> {
+      let lexer = step(lexer, src)
+      lex_exponent(lexer, n, text <> "0", ex * 10, sign)
+    }
+    "1" <> src -> {
+      let lexer = step(lexer, src)
+      lex_exponent(lexer, n, text <> "1", ex * 10 + 1, sign)
+    }
+    "2" <> src -> {
+      let lexer = step(lexer, src)
+      lex_exponent(lexer, n, text <> "2", ex * 10 + 2, sign)
+    }
+    "3" <> src -> {
+      let lexer = step(lexer, src)
+      lex_exponent(lexer, n, text <> "3", ex * 10 + 3, sign)
+    }
+    "4" <> src -> {
+      let lexer = step(lexer, src)
+      lex_exponent(lexer, n, text <> "4", ex * 10 + 4, sign)
+    }
+    "5" <> src -> {
+      let lexer = step(lexer, src)
+      lex_exponent(lexer, n, text <> "5", ex * 10 + 5, sign)
+    }
+    "6" <> src -> {
+      let lexer = step(lexer, src)
+      lex_exponent(lexer, n, text <> "6", ex * 10 + 6, sign)
+    }
+    "7" <> src -> {
+      let lexer = step(lexer, src)
+      lex_exponent(lexer, n, text <> "7", ex * 10 + 7, sign)
+    }
+    "8" <> src -> {
+      let lexer = step(lexer, src)
+      lex_exponent(lexer, n, text <> "8", ex * 10 + 8, sign)
+    }
+    "9" <> src -> {
+      let lexer = step(lexer, src)
+      lex_exponent(lexer, n, text <> "9", ex * 10 + 9, sign)
+    }
+
+    // Anything else and the number is terminated
+    src -> {
+      let n = case text {
+        "-" <> _ -> n *. -1.0
+        _ -> n
+      }
+      let exponent =
+        int.to_float(case sign {
+          Positive -> ex
+          Negative -> -ex
+        })
+      let multiplier = case float.power(10.0, exponent) {
+        Ok(multiplier) -> multiplier
+        Error(_) -> 1.0
+      }
+      lexed(lexer, src, FloatToken(text, n *. multiplier))
     }
   }
 }

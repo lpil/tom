@@ -226,3 +226,31 @@ pub fn float_underscore_test() {
 pub fn float_incomplete_test() {
   assert tom.to_tokens("12.") == Error(IncompleteFloat(2))
 }
+
+pub fn lex_float_exponent_test() {
+  assert tom.to_tokens("1e6") == Ok([FloatToken("1e6", 1.0e6), EndOfFile])
+}
+
+pub fn lex_float_exponent_uppercase_test() {
+  assert tom.to_tokens("1E6") == Ok([FloatToken("1E6", 1.0e6), EndOfFile])
+}
+
+pub fn lex_float_exponent_negative_test() {
+  assert tom.to_tokens("-2e-22")
+    == Ok([FloatToken("-2e-22", -2.0e-22), EndOfFile])
+}
+
+pub fn lex_float_decimal_and_exponent_test() {
+  assert tom.to_tokens("6.626e25")
+    == Ok([FloatToken("6.626e25", 6.626e25), EndOfFile])
+}
+
+pub fn lex_float_decimal_and_exponent_positive_test() {
+  assert tom.to_tokens("6.626e+25")
+    == Ok([FloatToken("6.626e+25", 6.626e25), EndOfFile])
+}
+
+pub fn lex_float_decimal_and_exponent_negative_test() {
+  assert tom.to_tokens("6.626e-25")
+    == Ok([FloatToken("6.626e-25", 6.626e-25), EndOfFile])
+}
