@@ -1,3 +1,4 @@
+import gleam/bool
 import gleam/float
 import gleam/int
 import gleam/list
@@ -83,8 +84,9 @@ pub type TomlError {
   IncompleteFloat(byte_position: Int)
   IncompleteDate(byte_position: Int)
   IncompleteTime(byte_position: Int)
-  UnknownSequence(byte_position: Int, src: String)
-  UnknownEscapeSequence(byte_position: Int, src: String)
+  UnknownSequence(byte_position: Int)
+  InvalidEscapeSequence(byte_position: Int)
+  UnknownEscapeSequence(byte_position: Int)
   // KeyAlreadyInUse(key: List(String))
 }
 
@@ -100,9 +102,8 @@ fn new_lexer(src: String) -> Lexer {
   let splitters =
     Splitters(
       literal_string: splitter.new(["\n", "'"]),
-      multiline_literal_string: splitter.new(["\n", "'''"]),
       basic_string: splitter.new(["\n", "\"", "\\"]),
-      multiline_basic_string: splitter.new(["\n", "\"\"\"", "\\"]),
+      multiline_basic_string: splitter.new(["\"\"\"", "\\"]),
     )
   Lexer(0, src:, splitters:)
 }
@@ -120,7 +121,6 @@ type Lexer {
 type Splitters {
   Splitters(
     literal_string: Splitter,
-    multiline_literal_string: Splitter,
     basic_string: Splitter,
     multiline_basic_string: Splitter,
   )
@@ -177,6 +177,7 @@ fn lex(lexer: Lexer) -> Result(#(Lexer, Token), TomlError) {
     "'''" <> src -> lex_multiline_literal_string(step(lexer, src))
     "'" <> src -> lex_literal_string(step(lexer, src))
 
+    "\"\"\"" <> src -> lex_multiline_basic_string(step(lexer, src), "", "")
     "\"" <> src -> lex_basic_string(step(lexer, src), "", "")
 
     "0" <> src -> lex_number(step(lexer, src), 0, "0")
@@ -833,13 +834,7 @@ fn lex_bare_key(
     | "_" as c <> src -> lex_bare_key(step(lexer, src), content <> c)
 
     src if content != "" -> lexed(lexer, src, BareKeyToken(content))
-    src -> {
-      let got = case string.pop_grapheme(src) {
-        Ok(#(got, _)) -> got
-        Error(_) -> ""
-      }
-      Error(UnknownSequence(lexer.position, got))
-    }
+    _ -> Error(UnknownSequence(lexer.position))
   }
 }
 
@@ -913,12 +908,42 @@ fn lex_basic_string(
   }
 }
 
+fn lex_multiline_basic_string(
+  lexer: Lexer,
+  text: String,
+  value: String,
+) -> Result(#(Lexer, Token), TomlError) {
+  let start_position = lexer.position - 3
+  let #(lexer, before, split) =
+    run_splitter(lexer, lexer.splitters.multiline_basic_string, lexer.src)
+  let text = text <> before
+  let value = value <> before
+  case split {
+    "\\" -> {
+      let text = text <> "\\"
+      case lex_escape(lexer, text, value) {
+        Ok(#(lexer, text, value)) ->
+          lex_multiline_basic_string(lexer, text, value)
+        Error(e) -> Error(e)
+      }
+    }
+    "\"\"\"" -> {
+      let value = drop_leading_newline(value)
+      Ok(#(lexer, MultiLineBasicStringToken(src: text, value:)))
+    }
+    _ -> Error(UnterminatedString(start_position))
+  }
+}
+
 fn lex_escape(
   lexer: Lexer,
   text: String,
   value: String,
 ) -> Result(#(Lexer, String, String), TomlError) {
   case lexer.src {
+    "x" <> src -> lex_unicode_escape(step(lexer, src), text <> "x", value, 2)
+    "u" <> src -> lex_unicode_escape(step(lexer, src), text <> "u", value, 4)
+    "U" <> src -> lex_unicode_escape(step(lexer, src), text <> "U", value, 8)
     "t" <> src -> Ok(#(step(lexer, src), text <> "t", value <> "\t"))
     "e" <> src -> Ok(#(step(lexer, src), text <> "e", value <> "\u{001b}"))
     "b" <> src -> Ok(#(step(lexer, src), text <> "b", value <> "\u{0008}"))
@@ -927,14 +952,38 @@ fn lex_escape(
     "f" <> src -> Ok(#(step(lexer, src), text <> "f", value <> "\f"))
     "\"" <> src -> Ok(#(step(lexer, src), text <> "\"", value <> "\""))
     "\\" <> src -> Ok(#(step(lexer, src), text <> "\\", value <> "\\"))
-    _ -> {
-      let got = case string.pop_grapheme(lexer.src) {
-        Ok(#(got, _)) -> got
-        Error(_) -> ""
-      }
-      Error(UnknownEscapeSequence(lexer.position, got))
+    "\n" <> src -> {
+      let #(whitespace, src) = take_whitespace("\n", src)
+      let lexer = step(lexer, src)
+      Ok(#(lexer, text <> whitespace, value))
     }
+    _ -> Error(UnknownEscapeSequence(lexer.position))
   }
+}
+
+fn lex_unicode_escape(
+  lexer: Lexer,
+  text: String,
+  value: String,
+  digits: Int,
+) -> Result(#(Lexer, String, String), TomlError) {
+  let hex = string.slice(lexer.src, 0, digits)
+  use <- bool.guard(
+    when: string.byte_size(hex) != digits,
+    return: Error(InvalidEscapeSequence(lexer.position)),
+  )
+  let src = string.slice(lexer.src, digits, string.byte_size(lexer.src))
+
+  use codepoint <- result.try(
+    int.base_parse(hex, 16)
+    |> result.try(string.utf_codepoint)
+    |> result.replace_error(InvalidEscapeSequence(lexer.position)),
+  )
+
+  let lexer = step(lexer, src)
+  let text = text <> hex
+  let value = value <> string.from_utf_codepoints([codepoint])
+  Ok(#(lexer, text, value))
 }
 
 fn run_splitter(

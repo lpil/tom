@@ -250,6 +250,14 @@ pub fn basic_string_hex_escape_test() {
     ])
 }
 
+pub fn basic_string_hex_escape_upper_range_test() {
+  assert tom.to_tokens("\"\\xff\"")
+    == Ok([
+      BasicStringToken(src: "\\xff", value: "\u{ff}"),
+      EndOfFile,
+    ])
+}
+
 pub fn basic_string_unicode_escape_test() {
   assert tom.to_tokens("\"\\u03B1\"")
     == Ok([
@@ -266,8 +274,180 @@ pub fn basic_string_unicode_long_escape_test() {
     ])
 }
 
+pub fn multiline_basic_string_test() {
+  assert tom.to_tokens("\"\"\"\nHello\"\"\"")
+    == Ok([
+      MultiLineBasicStringToken(src: "\nHello", value: "Hello"),
+      EndOfFile,
+    ])
+}
+
+pub fn multiline_basic_string_no_newline_test() {
+  assert tom.to_tokens("\"\"\"Hello\"\"\"")
+    == Ok([
+      MultiLineBasicStringToken(src: "Hello", value: "Hello"),
+      EndOfFile,
+    ])
+}
+
+pub fn multiline_basic_string_multiline_test() {
+  assert tom.to_tokens("\"\"\"\n1\n2\n3\n\"\"\"")
+    == Ok([
+      MultiLineBasicStringToken(src: "\n1\n2\n3\n", value: "1\n2\n3\n"),
+      EndOfFile,
+    ])
+}
+
+pub fn multiline_basic_string_newline_test() {
+  assert tom.to_tokens("\"\"\"\n1\n2\"\"\"")
+    == Ok([
+      MultiLineBasicStringToken(src: "\n1\n2", value: "1\n2"),
+      EndOfFile,
+    ])
+}
+
+pub fn multiline_basic_string_unterminated_test() {
+  assert tom.to_tokens("\"\"\"\n1")
+    == Error(UnterminatedString(byte_position: 0))
+}
+
+pub fn multiline_basic_string_quote_escape_test() {
+  assert tom.to_tokens("\"\"\"\n\\\"\"\"\"")
+    == Ok([
+      MultiLineBasicStringToken(src: "\n\\\"", value: "\""),
+      EndOfFile,
+    ])
+}
+
+pub fn multiline_basic_string_backslash_escape_test() {
+  assert tom.to_tokens("\"\"\"\n\\\\\"\"\"")
+    == Ok([
+      MultiLineBasicStringToken(src: "\n\\\\", value: "\\"),
+      EndOfFile,
+    ])
+}
+
+pub fn multiline_basic_string_backspace_escape_test() {
+  assert tom.to_tokens("\"\"\"\n\\b\"\"\"")
+    == Ok([
+      MultiLineBasicStringToken(src: "\n\\b", value: "\u{8}"),
+      EndOfFile,
+    ])
+}
+
+pub fn multiline_basic_string_tab_escape_test() {
+  assert tom.to_tokens("\"\"\"\n\\t\"\"\"")
+    == Ok([
+      MultiLineBasicStringToken(src: "\n\\t", value: "\t"),
+      EndOfFile,
+    ])
+}
+
+pub fn multiline_basic_string_newline_escape_test() {
+  assert tom.to_tokens("\"\"\"\n\\n\"\"\"")
+    == Ok([
+      MultiLineBasicStringToken(src: "\n\\n", value: "\n"),
+      EndOfFile,
+    ])
+}
+
+pub fn multiline_basic_string_form_feed_escape_test() {
+  assert tom.to_tokens("\"\"\"\n\\f\"\"\"")
+    == Ok([
+      MultiLineBasicStringToken(src: "\n\\f", value: "\u{c}"),
+      EndOfFile,
+    ])
+}
+
+pub fn multiline_basic_string_carriage_return_escape_test() {
+  assert tom.to_tokens("\"\"\"\n\\r\"\"\"")
+    == Ok([
+      MultiLineBasicStringToken(src: "\n\\r", value: "\r"),
+      EndOfFile,
+    ])
+}
+
+pub fn multiline_basic_string_escape_escape_test() {
+  assert tom.to_tokens("\"\"\"\n\\e\"\"\"")
+    == Ok([
+      MultiLineBasicStringToken(src: "\n\\e", value: "\u{1b}"),
+      EndOfFile,
+    ])
+}
+
+pub fn multiline_basic_string_hex_escape_test() {
+  assert tom.to_tokens("\"\"\"\n\\x7f\"\"\"")
+    == Ok([
+      MultiLineBasicStringToken(src: "\n\\x7f", value: "\u{7f}"),
+      EndOfFile,
+    ])
+}
+
+pub fn multiline_basic_string_hex_escape_upper_range_test() {
+  assert tom.to_tokens("\"\"\"\n\\xff\"\"\"")
+    == Ok([
+      MultiLineBasicStringToken(src: "\n\\xff", value: "\u{ff}"),
+      EndOfFile,
+    ])
+}
+
+pub fn multiline_basic_string_unicode_escape_test() {
+  assert tom.to_tokens("\"\"\"\n\\u03B1\"\"\"")
+    == Ok([
+      MultiLineBasicStringToken(src: "\n\\u03B1", value: "\u{3b1}"),
+      EndOfFile,
+    ])
+}
+
+pub fn multiline_basic_string_unicode_long_escape_test() {
+  assert tom.to_tokens("\"\"\"\n\\U0001F600\"\"\"")
+    == Ok([
+      MultiLineBasicStringToken(src: "\n\\U0001F600", value: "\u{1f600}"),
+      EndOfFile,
+    ])
+}
+
+pub fn multiline_basic_string_line_ending_backslash_test() {
+  assert tom.to_tokens(
+      "\"\"\"\nThe quick brown \\\nfox jumps over \\\nthe lazy dog.\"\"\"",
+    )
+    == Ok([
+      MultiLineBasicStringToken(
+        src: "\nThe quick brown \\\nfox jumps over \\\nthe lazy dog.",
+        value: "The quick brown fox jumps over the lazy dog.",
+      ),
+      EndOfFile,
+    ])
+}
+
+pub fn multiline_basic_string_line_ending_backslash_spaces_test() {
+  assert tom.to_tokens(
+      "\"\"\"\nThe quick brown \\\n  fox jumps over \\\n  the lazy dog.\"\"\"",
+    )
+    == Ok([
+      MultiLineBasicStringToken(
+        src: "\nThe quick brown \\\n  fox jumps over \\\n  the lazy dog.",
+        value: "The quick brown fox jumps over the lazy dog.",
+      ),
+      EndOfFile,
+    ])
+}
+
+pub fn multiline_basic_string_line_ending_backslash_tabs_test() {
+  assert tom.to_tokens(
+      "\"\"\"\nThe quick brown \\\n\tfox jumps over \\\n\tthe lazy dog.\"\"\"",
+    )
+    == Ok([
+      MultiLineBasicStringToken(
+        src: "\nThe quick brown \\\n\tfox jumps over \\\n\tthe lazy dog.",
+        value: "The quick brown fox jumps over the lazy dog.",
+      ),
+      EndOfFile,
+    ])
+}
+
 pub fn unexpected_test() {
-  assert tom.to_tokens("???") == Error(UnknownSequence(0, "?"))
+  assert tom.to_tokens("???") == Error(UnknownSequence(0))
 }
 
 pub fn key_test() {
