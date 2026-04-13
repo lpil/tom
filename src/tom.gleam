@@ -4,8 +4,11 @@ import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleam/result
 import gleam/string
-import gleam/time/calendar
-import gleam/time/duration
+import gleam/time/calendar.{
+  type Month, April, August, December, February, January, July, June, March, May,
+  November, October, September,
+}
+import gleam/time/duration.{type Duration}
 import splitter.{type Splitter}
 
 /// A token produced by lexing TOML source text.
@@ -57,7 +60,7 @@ pub type Token {
     src: String,
     date: calendar.Date,
     time: calendar.TimeOfDay,
-    offset: duration.Duration,
+    offset: Duration,
   )
   /// A date-time with no offset.
   LocalDateTimeToken(src: String, date: calendar.Date, time: calendar.TimeOfDay)
@@ -80,7 +83,8 @@ pub type TomlError {
   IncompleteFloat(byte_position: Int)
   IncompleteDate(byte_position: Int)
   IncompleteTime(byte_position: Int)
-  UnknownSequence(byte_position: Int, got: String)
+  UnknownSequence(byte_position: Int, src: String)
+  UnknownEscapeSequence(byte_position: Int, src: String)
   // KeyAlreadyInUse(key: List(String))
 }
 
@@ -97,8 +101,8 @@ fn new_lexer(src: String) -> Lexer {
     Splitters(
       literal_string: splitter.new(["\n", "'"]),
       multiline_literal_string: splitter.new(["\n", "'''"]),
-      basic_string: splitter.new(["\n", "\"", "\\\\", "\\"]),
-      multiline_basic_string: splitter.new(["\n", "\"\"\"", "\\\\", "\\"]),
+      basic_string: splitter.new(["\n", "\"", "\\"]),
+      multiline_basic_string: splitter.new(["\n", "\"\"\"", "\\"]),
     )
   Lexer(0, src:, splitters:)
 }
@@ -168,9 +172,12 @@ fn lex(lexer: Lexer) -> Result(#(Lexer, Token), TomlError) {
     "+inf" <> src -> lexed(lexer, src, InfinityToken(Some(Positive)))
 
     " " <> _ | "\t" <> _ -> lex_whitespace(lexer)
+    "#" <> src -> lex_comment(src, lexer)
+
     "'''" <> src -> lex_multiline_literal_string(step(lexer, src))
     "'" <> src -> lex_literal_string(step(lexer, src))
-    "#" <> src -> lex_comment(src, lexer)
+
+    "\"" <> src -> lex_basic_string(step(lexer, src), "", "")
 
     "0" <> src -> lex_number(step(lexer, src), 0, "0")
     "1" <> src -> lex_number(step(lexer, src), 1, "1")
@@ -225,6 +232,7 @@ fn lex_number(
     "8" <> src -> lex_number(step(lexer, src), int * 10 + 8, text <> "8")
     "9" <> src -> lex_number(step(lexer, src), int * 10 + 9, text <> "9")
 
+    "-" <> src -> lex_date(step(lexer, src), int, text <> "-")
     ":" <> src if int < 24 ->
       lex_time_minute(step(lexer, src), int, text <> ":")
 
@@ -266,6 +274,181 @@ fn lex_number(
       lexed(lexer, src, IntToken(text, value:))
     }
   }
+}
+
+fn lex_date(
+  lexer: Lexer,
+  year: Int,
+  text: String,
+) -> Result(#(Lexer, Token), TomlError) {
+  case lexer.src {
+    "01-" <> src -> lex_day(step(lexer, src), year, January, text <> "01-")
+    "02-" <> src -> lex_day(step(lexer, src), year, February, text <> "02-")
+    "03-" <> src -> lex_day(step(lexer, src), year, March, text <> "03-")
+    "04-" <> src -> lex_day(step(lexer, src), year, April, text <> "04-")
+    "05-" <> src -> lex_day(step(lexer, src), year, May, text <> "05-")
+    "06-" <> src -> lex_day(step(lexer, src), year, June, text <> "06-")
+    "07-" <> src -> lex_day(step(lexer, src), year, July, text <> "07-")
+    "08-" <> src -> lex_day(step(lexer, src), year, August, text <> "08-")
+    "09-" <> src -> lex_day(step(lexer, src), year, September, text <> "09-")
+    "10-" <> src -> lex_day(step(lexer, src), year, October, text <> "10-")
+    "11-" <> src -> lex_day(step(lexer, src), year, November, text <> "11-")
+    "12-" <> src -> lex_day(step(lexer, src), year, December, text <> "12-")
+    _ -> Error(IncompleteDate(lexer.position))
+  }
+}
+
+fn lex_day(
+  lexer: Lexer,
+  year: Int,
+  month: Month,
+  text: String,
+) -> Result(#(Lexer, Token), TomlError) {
+  case lexer.src {
+    "01" <> src -> lex_date_end(step(lexer, src), year, month, 1, text <> "01")
+    "02" <> src -> lex_date_end(step(lexer, src), year, month, 2, text <> "02")
+    "03" <> src -> lex_date_end(step(lexer, src), year, month, 3, text <> "03")
+    "04" <> src -> lex_date_end(step(lexer, src), year, month, 4, text <> "04")
+    "05" <> src -> lex_date_end(step(lexer, src), year, month, 5, text <> "05")
+    "06" <> src -> lex_date_end(step(lexer, src), year, month, 6, text <> "06")
+    "07" <> src -> lex_date_end(step(lexer, src), year, month, 7, text <> "07")
+    "08" <> src -> lex_date_end(step(lexer, src), year, month, 8, text <> "08")
+    "09" <> src -> lex_date_end(step(lexer, src), year, month, 9, text <> "09")
+    "10" <> src -> lex_date_end(step(lexer, src), year, month, 10, text <> "10")
+    "11" <> src -> lex_date_end(step(lexer, src), year, month, 11, text <> "11")
+    "12" <> src -> lex_date_end(step(lexer, src), year, month, 12, text <> "12")
+    "13" <> src -> lex_date_end(step(lexer, src), year, month, 13, text <> "13")
+    "14" <> src -> lex_date_end(step(lexer, src), year, month, 14, text <> "14")
+    "15" <> src -> lex_date_end(step(lexer, src), year, month, 15, text <> "15")
+    "16" <> src -> lex_date_end(step(lexer, src), year, month, 16, text <> "16")
+    "17" <> src -> lex_date_end(step(lexer, src), year, month, 17, text <> "17")
+    "18" <> src -> lex_date_end(step(lexer, src), year, month, 18, text <> "18")
+    "19" <> src -> lex_date_end(step(lexer, src), year, month, 19, text <> "19")
+    "20" <> src -> lex_date_end(step(lexer, src), year, month, 20, text <> "20")
+    "21" <> src -> lex_date_end(step(lexer, src), year, month, 21, text <> "21")
+    "22" <> src -> lex_date_end(step(lexer, src), year, month, 22, text <> "22")
+    "23" <> src -> lex_date_end(step(lexer, src), year, month, 23, text <> "23")
+    "24" <> src -> lex_date_end(step(lexer, src), year, month, 24, text <> "24")
+    "25" <> src -> lex_date_end(step(lexer, src), year, month, 25, text <> "25")
+    "26" <> src -> lex_date_end(step(lexer, src), year, month, 26, text <> "26")
+    "27" <> src -> lex_date_end(step(lexer, src), year, month, 27, text <> "27")
+    "28" <> src -> lex_date_end(step(lexer, src), year, month, 28, text <> "28")
+    "29" <> src -> lex_date_end(step(lexer, src), year, month, 29, text <> "29")
+    "30" <> src -> lex_date_end(step(lexer, src), year, month, 30, text <> "30")
+    "31" <> src -> lex_date_end(step(lexer, src), year, month, 31, text <> "31")
+    _ -> Error(IncompleteDate(lexer.position))
+  }
+}
+
+fn lex_date_end(
+  lexer: Lexer,
+  year: Int,
+  month: Month,
+  day: Int,
+  text: String,
+) -> Result(#(Lexer, Token), TomlError) {
+  let date = calendar.Date(year, month, day)
+  case lexer.src {
+    " " as delimeter <> src | "T" as delimeter <> src -> {
+      let lexer = step(lexer, src)
+      let text = text <> delimeter
+      use #(lexer, text, time) <- result.try(lex_time_value(lexer, text))
+      lex_datetime_offset(lexer, date, time, text)
+    }
+
+    _ -> Ok(#(lexer, LocalDateToken(text, date)))
+  }
+}
+
+fn lex_datetime_offset(
+  lexer: Lexer,
+  date: calendar.Date,
+  time: calendar.TimeOfDay,
+  text: String,
+) -> Result(#(Lexer, Token), TomlError) {
+  case lexer.src {
+    "Z" <> src -> {
+      let lexer = step(lexer, src)
+      let text = text <> "Z"
+      let offset = calendar.utc_offset
+      let token = OffsetDateTimeToken(src: text, date:, time:, offset:)
+      Ok(#(lexer, token))
+    }
+    "+" <> src -> {
+      let lexer = step(lexer, src)
+      let text = text <> "+"
+      use #(lexer, text, offset) <- result.try(lex_offset(lexer, text, Positive))
+      let token = OffsetDateTimeToken(src: text, date:, time:, offset:)
+      Ok(#(lexer, token))
+    }
+    "-" <> src -> {
+      let lexer = step(lexer, src)
+      let text = text <> "-"
+      use #(lexer, text, offset) <- result.try(lex_offset(lexer, text, Negative))
+      let token = OffsetDateTimeToken(src: text, date:, time:, offset:)
+      Ok(#(lexer, token))
+    }
+
+    _ -> Ok(#(lexer, LocalDateTimeToken(text, date:, time:)))
+  }
+}
+
+fn lex_offset(
+  lexer: Lexer,
+  text: String,
+  sign: Sign,
+) -> Result(#(Lexer, String, Duration), TomlError) {
+  use #(lexer, text, hours, minutes) <- result.try(lex_hour_minute(lexer, text))
+  let duration = case sign {
+    Positive -> duration.add(duration.hours(hours), duration.minutes(minutes))
+    Negative -> duration.add(duration.hours(-hours), duration.minutes(-minutes))
+  }
+  Ok(#(lexer, text, duration))
+}
+
+fn lex_time_value(
+  lexer: Lexer,
+  text: String,
+) -> Result(#(Lexer, String, calendar.TimeOfDay), TomlError) {
+  use #(lexer, text, hours, minutes) <- result.try(lex_hour_minute(lexer, text))
+  use #(lexer, text, seconds, ns) <- result.try(lex_seconds(lexer, text))
+  let time = calendar.TimeOfDay(hours, minutes, seconds, ns)
+  Ok(#(lexer, text, time))
+}
+
+fn lex_hour_minute(
+  lexer: Lexer,
+  text: String,
+) -> Result(#(Lexer, String, Int, Int), TomlError) {
+  use #(lexer, hours, text) <- result.try(case lexer.src {
+    "00:" as t <> src -> Ok(#(step(lexer, src), 0, text <> t))
+    "01:" as t <> src -> Ok(#(step(lexer, src), 1, text <> t))
+    "02:" as t <> src -> Ok(#(step(lexer, src), 2, text <> t))
+    "03:" as t <> src -> Ok(#(step(lexer, src), 3, text <> t))
+    "04:" as t <> src -> Ok(#(step(lexer, src), 4, text <> t))
+    "05:" as t <> src -> Ok(#(step(lexer, src), 5, text <> t))
+    "06:" as t <> src -> Ok(#(step(lexer, src), 6, text <> t))
+    "07:" as t <> src -> Ok(#(step(lexer, src), 7, text <> t))
+    "08:" as t <> src -> Ok(#(step(lexer, src), 8, text <> t))
+    "09:" as t <> src -> Ok(#(step(lexer, src), 9, text <> t))
+    "10:" as t <> src -> Ok(#(step(lexer, src), 10, text <> t))
+    "11:" as t <> src -> Ok(#(step(lexer, src), 11, text <> t))
+    "12:" as t <> src -> Ok(#(step(lexer, src), 12, text <> t))
+    "13:" as t <> src -> Ok(#(step(lexer, src), 13, text <> t))
+    "14:" as t <> src -> Ok(#(step(lexer, src), 14, text <> t))
+    "15:" as t <> src -> Ok(#(step(lexer, src), 15, text <> t))
+    "16:" as t <> src -> Ok(#(step(lexer, src), 16, text <> t))
+    "17:" as t <> src -> Ok(#(step(lexer, src), 17, text <> t))
+    "18:" as t <> src -> Ok(#(step(lexer, src), 18, text <> t))
+    "19:" as t <> src -> Ok(#(step(lexer, src), 19, text <> t))
+    "20:" as t <> src -> Ok(#(step(lexer, src), 20, text <> t))
+    "21:" as t <> src -> Ok(#(step(lexer, src), 21, text <> t))
+    "22:" as t <> src -> Ok(#(step(lexer, src), 22, text <> t))
+    "23:" as t <> src -> Ok(#(step(lexer, src), 23, text <> t))
+    _ -> Error(IncompleteTime(lexer.position))
+  })
+  use #(lexer, text, minutes) <- result.try(lex_number_under_60(lexer, text))
+  Ok(#(lexer, text, hours, minutes))
 }
 
 fn lex_time_minute(
@@ -703,6 +886,54 @@ fn lex_literal_string(lexer: Lexer) -> Result(#(Lexer, Token), TomlError) {
     "'" -> Ok(#(lexer, LiteralStringToken(before)))
     "\n" -> Error(UnterminatedString(start_position))
     _ -> Error(UnterminatedString(start_position))
+  }
+}
+
+fn lex_basic_string(
+  lexer: Lexer,
+  text: String,
+  value: String,
+) -> Result(#(Lexer, Token), TomlError) {
+  let start_position = lexer.position - 1
+  let #(lexer, before, split) =
+    run_splitter(lexer, lexer.splitters.basic_string, lexer.src)
+  let text = text <> before
+  let value = value <> before
+  case split {
+    "\\" -> {
+      let text = text <> "\\"
+      case lex_escape(lexer, text, value) {
+        Ok(#(lexer, text, value)) -> lex_basic_string(lexer, text, value)
+        Error(e) -> Error(e)
+      }
+    }
+    "\"" -> Ok(#(lexer, BasicStringToken(src: text, value:)))
+    "\n" -> Error(UnterminatedString(start_position))
+    _ -> Error(UnterminatedString(start_position))
+  }
+}
+
+fn lex_escape(
+  lexer: Lexer,
+  text: String,
+  value: String,
+) -> Result(#(Lexer, String, String), TomlError) {
+  case lexer.src {
+    "t" <> src -> Ok(#(step(lexer, src), text <> "t", value <> "\t"))
+    "e" <> src -> Ok(#(step(lexer, src), text <> "e", value <> "\u{001b}"))
+    "b" <> src -> Ok(#(step(lexer, src), text <> "b", value <> "\u{0008}"))
+    "n" <> src -> Ok(#(step(lexer, src), text <> "n", value <> "\n"))
+    "r" <> src -> Ok(#(step(lexer, src), text <> "r", value <> "\r"))
+    "f" <> src -> Ok(#(step(lexer, src), text <> "f", value <> "\f"))
+    "\"" <> src -> Ok(#(step(lexer, src), text <> "\"", value <> "\""))
+    "\\" <> src -> Ok(#(step(lexer, src), text <> "\\", value <> "\\"))
+    _ -> {
+      let got = case string.pop_grapheme(lexer.src) {
+        Ok(#(got, _)) -> got
+        Error(_) -> ""
+      }
+      Error(UnknownEscapeSequence(lexer.position, got))
+    }
   }
 }
 

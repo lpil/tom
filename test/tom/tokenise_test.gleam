@@ -1,11 +1,12 @@
 import gleam/option.{None, Some}
 import gleam/time/calendar
+import gleam/time/duration
 import tom.{
   BareKeyToken, BasicStringToken, BoolToken, CommaToken, CommentToken, DotToken,
   DoubleLeftBracketToken, DoubleRightBracketToken, EndOfFile, EqualsToken,
-  FloatToken, IncompleteFloat, IncompleteTime, InfinityToken, IntToken,
-  LeftBraceToken, LeftBracketToken, LiteralStringToken, LocalDateTimeToken,
-  LocalDateToken, LocalTimeToken, MultiLineBasicStringToken,
+  FloatToken, IncompleteDate, IncompleteFloat, IncompleteTime, InfinityToken,
+  IntToken, LeftBraceToken, LeftBracketToken, LiteralStringToken,
+  LocalDateTimeToken, LocalDateToken, LocalTimeToken, MultiLineBasicStringToken,
   MultiLineLiteralStringToken, NanToken, Negative, NewlineToken,
   OffsetDateTimeToken, Positive, RightBraceToken, RightBracketToken,
   UnknownSequence, UnterminatedString, WhitespaceToken,
@@ -160,6 +161,111 @@ pub fn multiline_literal_string_test() {
     ])
 }
 
+pub fn basic_string_test() {
+  assert tom.to_tokens("\"Hello\"")
+    == Ok([
+      BasicStringToken(src: "Hello", value: "Hello"),
+      EndOfFile,
+    ])
+}
+
+pub fn basic_string_newline_test() {
+  assert tom.to_tokens("\"1\n2\"")
+    == Error(UnterminatedString(byte_position: 0))
+}
+
+pub fn basic_string_unterminated_test() {
+  assert tom.to_tokens("\"1") == Error(UnterminatedString(byte_position: 0))
+}
+
+pub fn basic_string_quote_escape_test() {
+  assert tom.to_tokens("\"\\\"\"")
+    == Ok([
+      BasicStringToken(src: "\\\"", value: "\""),
+      EndOfFile,
+    ])
+}
+
+pub fn basic_string_backslash_escape_test() {
+  assert tom.to_tokens("\"\\\\\"")
+    == Ok([
+      BasicStringToken(src: "\\\\", value: "\\"),
+      EndOfFile,
+    ])
+}
+
+pub fn basic_string_backspace_escape_test() {
+  assert tom.to_tokens("\"\\b\"")
+    == Ok([
+      BasicStringToken(src: "\\b", value: "\u{8}"),
+      EndOfFile,
+    ])
+}
+
+pub fn basic_string_tab_escape_test() {
+  assert tom.to_tokens("\"\\t\"")
+    == Ok([
+      BasicStringToken(src: "\\t", value: "\t"),
+      EndOfFile,
+    ])
+}
+
+pub fn basic_string_newline_escape_test() {
+  assert tom.to_tokens("\"\\n\"")
+    == Ok([
+      BasicStringToken(src: "\\n", value: "\n"),
+      EndOfFile,
+    ])
+}
+
+pub fn basic_string_form_feed_escape_test() {
+  assert tom.to_tokens("\"\\f\"")
+    == Ok([
+      BasicStringToken(src: "\\f", value: "\u{c}"),
+      EndOfFile,
+    ])
+}
+
+pub fn basic_string_carriage_return_escape_test() {
+  assert tom.to_tokens("\"\\r\"")
+    == Ok([
+      BasicStringToken(src: "\\r", value: "\r"),
+      EndOfFile,
+    ])
+}
+
+pub fn basic_string_escape_escape_test() {
+  assert tom.to_tokens("\"\\e\"")
+    == Ok([
+      BasicStringToken(src: "\\e", value: "\u{1b}"),
+      EndOfFile,
+    ])
+}
+
+pub fn basic_string_hex_escape_test() {
+  assert tom.to_tokens("\"\\x7f\"")
+    == Ok([
+      BasicStringToken(src: "\\x7f", value: "\u{7f}"),
+      EndOfFile,
+    ])
+}
+
+pub fn basic_string_unicode_escape_test() {
+  assert tom.to_tokens("\"\\u03B1\"")
+    == Ok([
+      BasicStringToken(src: "\\u03B1", value: "\u{3b1}"),
+      EndOfFile,
+    ])
+}
+
+pub fn basic_string_unicode_long_escape_test() {
+  assert tom.to_tokens("\"\\U0001F600\"")
+    == Ok([
+      BasicStringToken(src: "\\U0001F600", value: "\u{1f600}"),
+      EndOfFile,
+    ])
+}
+
 pub fn unexpected_test() {
   assert tom.to_tokens("???") == Error(UnknownSequence(0, "?"))
 }
@@ -286,4 +392,71 @@ pub fn local_time_incomplete_seconds_test() {
 
 pub fn local_time_incomplete_fractional_seconds_test() {
   assert tom.to_tokens("07:32:00.") == Error(IncompleteTime(9))
+}
+
+pub fn local_date_test() {
+  assert tom.to_tokens("1991-01-05")
+    == Ok([
+      LocalDateToken("1991-01-05", calendar.Date(1991, calendar.January, 5)),
+      EndOfFile,
+    ])
+}
+
+pub fn local_date_incomplete_month_test() {
+  assert tom.to_tokens("1991-") == Error(IncompleteDate(5))
+}
+
+pub fn local_date_incomplete_day_test() {
+  assert tom.to_tokens("1991-01-") == Error(IncompleteDate(8))
+}
+
+pub fn local_date_time_test() {
+  assert tom.to_tokens("1991-01-05T07:32:00")
+    == Ok([
+      LocalDateTimeToken(
+        "1991-01-05T07:32:00",
+        calendar.Date(1991, calendar.January, 5),
+        calendar.TimeOfDay(7, 32, 0, 0),
+      ),
+      EndOfFile,
+    ])
+}
+
+pub fn offset_date_time_test() {
+  assert tom.to_tokens("1991-01-05T07:32:00Z")
+    == Ok([
+      OffsetDateTimeToken(
+        "1991-01-05T07:32:00Z",
+        calendar.Date(1991, calendar.January, 5),
+        calendar.TimeOfDay(7, 32, 0, 0),
+        calendar.utc_offset,
+      ),
+      EndOfFile,
+    ])
+}
+
+pub fn offset_date_time_positive_offset_test() {
+  assert tom.to_tokens("1991-01-05T07:32:00+07:30")
+    == Ok([
+      OffsetDateTimeToken(
+        "1991-01-05T07:32:00+07:30",
+        calendar.Date(1991, calendar.January, 5),
+        calendar.TimeOfDay(7, 32, 0, 0),
+        duration.add(duration.hours(7), duration.minutes(30)),
+      ),
+      EndOfFile,
+    ])
+}
+
+pub fn offset_date_time_negative_offset_test() {
+  assert tom.to_tokens("1991-01-05T07:32:00-05:15")
+    == Ok([
+      OffsetDateTimeToken(
+        "1991-01-05T07:32:00-05:15",
+        calendar.Date(1991, calendar.January, 5),
+        calendar.TimeOfDay(7, 32, 0, 0),
+        duration.add(duration.hours(-5), duration.minutes(-15)),
+      ),
+      EndOfFile,
+    ])
 }
