@@ -1,9 +1,13 @@
 import gleam/option.{None, Some}
 import tom.{
-  BareKeyToken, BoolToken, CommentToken, DotToken, DoubleLeftBracketToken,
-  DoubleRightBracketToken, EndOfFile, EqualsToken, InfinityToken, IntToken,
-  LeftBraceToken, LeftBracketToken, NanToken, Negative, NewlineToken, Positive,
-  RightBraceToken, RightBracketToken, WhitespaceToken,
+  BareKeyToken, BasicStringToken, BoolToken, CommaToken, CommentToken, DotToken,
+  DoubleLeftBracketToken, DoubleRightBracketToken, EndOfFile, EqualsToken,
+  FloatToken, IncompleteFloat, InfinityToken, IntToken, LeftBraceToken,
+  LeftBracketToken, LiteralStringToken, LocalDateTimeToken, LocalDateToken,
+  LocalTimeToken, MultiLineBasicStringToken, MultiLineLiteralStringToken,
+  NanToken, Negative, NewlineToken, OffsetDateTimeToken, Positive,
+  RightBraceToken, RightBracketToken, UnknownSequence, UnterminatedString,
+  WhitespaceToken,
 }
 
 pub fn empty_test() {
@@ -16,6 +20,10 @@ pub fn equal_test() {
 
 pub fn dot_test() {
   assert tom.to_tokens(".") == Ok([DotToken, EndOfFile])
+}
+
+pub fn comma_test() {
+  assert tom.to_tokens(",") == Ok([CommaToken, EndOfFile])
 }
 
 pub fn braces_test() {
@@ -71,15 +79,150 @@ pub fn newline_test() {
 
 pub fn comment_test() {
   assert tom.to_tokens("# Hello, world!\n\n")
-    == Ok([CommentToken(" Hello, world!"), NewlineToken, EndOfFile])
+    == Ok([CommentToken(" Hello, world!\n"), NewlineToken, EndOfFile])
 }
-// pub fn key_value_with_whitespace_tokenises_test() {
-//   assert tom2.to_tokens("answer = 42")
-//     == Ok([
-//       BareKeyToken("answer"),
-//       WhitespaceToken(" "),
-//       EqualsToken,
-//       WhitespaceToken(" "),
-//       IntToken("42", 42),
-//     ])
-// }
+
+pub fn comment_no_newline_test() {
+  assert tom.to_tokens("# Hello, world!")
+    == Ok([CommentToken(" Hello, world!"), EndOfFile])
+}
+
+pub fn spaces_test() {
+  assert tom.to_tokens(
+      "# 1
+      # 2
+",
+    )
+    == Ok([
+      CommentToken(" 1\n"),
+      WhitespaceToken("      "),
+      CommentToken(" 2\n"),
+      EndOfFile,
+    ])
+}
+
+pub fn tabs_test() {
+  assert tom.to_tokens(
+      "# 1
+\t\t\t# 2
+",
+    )
+    == Ok([
+      CommentToken(" 1\n"),
+      WhitespaceToken("\t\t\t"),
+      CommentToken(" 2\n"),
+      EndOfFile,
+    ])
+}
+
+pub fn tabs_and_spaces_test() {
+  assert tom.to_tokens(
+      "# 1
+\t \t \t# 2
+",
+    )
+    == Ok([
+      CommentToken(" 1\n"),
+      WhitespaceToken("\t \t \t"),
+      CommentToken(" 2\n"),
+      EndOfFile,
+    ])
+}
+
+pub fn literal_string_test() {
+  assert tom.to_tokens("'Hello'")
+    == Ok([
+      LiteralStringToken(src: "Hello"),
+      EndOfFile,
+    ])
+}
+
+pub fn literal_string_newline_test() {
+  assert tom.to_tokens("'1\n2'") == Error(UnterminatedString(byte_position: 0))
+}
+
+pub fn literal_string_unterminated_test() {
+  assert tom.to_tokens("'1") == Error(UnterminatedString(byte_position: 0))
+}
+
+pub fn multiline_literal_string_test() {
+  assert tom.to_tokens(
+      "'''
+1
+2
+3
+'''",
+    )
+    == Ok([
+      MultiLineLiteralStringToken(src: "\n1\n2\n3\n", value: "1\n2\n3\n"),
+      EndOfFile,
+    ])
+}
+
+pub fn unexpected_test() {
+  assert tom.to_tokens("???") == Error(UnknownSequence(0, "?"))
+}
+
+pub fn key_test() {
+  assert tom.to_tokens("name") == Ok([BareKeyToken("name"), EndOfFile])
+}
+
+pub fn key_fancy_test() {
+  assert tom.to_tokens("_H311o-W0rld_")
+    == Ok([BareKeyToken("_H311o-W0rld_"), EndOfFile])
+}
+
+pub fn key_value_test() {
+  assert tom.to_tokens("items = []")
+    == Ok([
+      BareKeyToken("items"),
+      WhitespaceToken(" "),
+      EqualsToken,
+      WhitespaceToken(" "),
+      LeftBracketToken,
+      RightBracketToken,
+      EndOfFile,
+    ])
+}
+
+pub fn number_test() {
+  assert tom.to_tokens("1234567890")
+    == Ok([IntToken("1234567890", 1_234_567_890), EndOfFile])
+}
+
+pub fn int_positive_test() {
+  assert tom.to_tokens("+1234567890")
+    == Ok([IntToken("+1234567890", 1_234_567_890), EndOfFile])
+}
+
+pub fn int_negative_test() {
+  assert tom.to_tokens("-1234567890")
+    == Ok([IntToken("-1234567890", -1_234_567_890), EndOfFile])
+}
+
+pub fn int_underscore_test() {
+  assert tom.to_tokens("12_345_67__890")
+    == Ok([IntToken("12_345_67__890", 1_234_567_890), EndOfFile])
+}
+
+pub fn float_test() {
+  assert tom.to_tokens("12.34") == Ok([FloatToken("12.34", 12.34), EndOfFile])
+}
+
+pub fn float_negative_test() {
+  assert tom.to_tokens("-12.34")
+    == Ok([FloatToken("-12.34", -12.34), EndOfFile])
+}
+
+pub fn float_positive_test() {
+  assert tom.to_tokens("+12.34") == Ok([FloatToken("+12.34", 12.34), EndOfFile])
+}
+
+pub fn float_underscore_test() {
+  assert tom.to_tokens("12_34.5_67__890")
+    == Ok([FloatToken("12_34.5_67__890", 1234.567_89), EndOfFile])
+}
+
+pub fn float_incomplete_test() {
+  assert tom.to_tokens("12.") == Error(IncompleteFloat(2))
+}
