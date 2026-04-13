@@ -1,13 +1,14 @@
 import gleam/option.{None, Some}
+import gleam/time/calendar
 import tom.{
   BareKeyToken, BasicStringToken, BoolToken, CommaToken, CommentToken, DotToken,
   DoubleLeftBracketToken, DoubleRightBracketToken, EndOfFile, EqualsToken,
-  FloatToken, IncompleteFloat, InfinityToken, IntToken, LeftBraceToken,
-  LeftBracketToken, LiteralStringToken, LocalDateTimeToken, LocalDateToken,
-  LocalTimeToken, MultiLineBasicStringToken, MultiLineLiteralStringToken,
-  NanToken, Negative, NewlineToken, OffsetDateTimeToken, Positive,
-  RightBraceToken, RightBracketToken, UnknownSequence, UnterminatedString,
-  WhitespaceToken,
+  FloatToken, IncompleteFloat, IncompleteTime, InfinityToken, IntToken,
+  LeftBraceToken, LeftBracketToken, LiteralStringToken, LocalDateTimeToken,
+  LocalDateToken, LocalTimeToken, MultiLineBasicStringToken,
+  MultiLineLiteralStringToken, NanToken, Negative, NewlineToken,
+  OffsetDateTimeToken, Positive, RightBraceToken, RightBracketToken,
+  UnknownSequence, UnterminatedString, WhitespaceToken,
 }
 
 pub fn empty_test() {
@@ -253,4 +254,36 @@ pub fn lex_float_decimal_and_exponent_positive_test() {
 pub fn lex_float_decimal_and_exponent_negative_test() {
   assert tom.to_tokens("6.626e-25")
     == Ok([FloatToken("6.626e-25", 6.626e-25), EndOfFile])
+}
+
+pub fn local_time_test() {
+  assert tom.to_tokens("07:32:00")
+    == Ok([
+      LocalTimeToken("07:32:00", calendar.TimeOfDay(7, 32, 0, 0)),
+      EndOfFile,
+    ])
+}
+
+pub fn local_time_fractional_seconds_test() {
+  assert tom.to_tokens("00:32:00.1234")
+    == Ok([
+      LocalTimeToken("00:32:00.1234", calendar.TimeOfDay(0, 32, 0, 123_400_000)),
+      EndOfFile,
+    ])
+}
+
+pub fn local_time_incomplete_minutes_test() {
+  assert tom.to_tokens("07:") == Error(IncompleteTime(3))
+}
+
+pub fn local_time_incomplete_seconds_test() {
+  assert tom.to_tokens("07:32")
+    == Ok([
+      LocalTimeToken("07:32", calendar.TimeOfDay(7, 32, 0, 0)),
+      EndOfFile,
+    ])
+}
+
+pub fn local_time_incomplete_fractional_seconds_test() {
+  assert tom.to_tokens("07:32:00.") == Error(IncompleteTime(9))
 }

@@ -4,6 +4,8 @@ import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleam/result
 import gleam/string
+import gleam/time/calendar
+import gleam/time/duration
 import splitter.{type Splitter}
 
 /// A token produced by lexing TOML source text.
@@ -51,13 +53,18 @@ pub type Token {
   /// `true` or `false`.
   BoolToken(value: Bool)
   /// A date-time with an offset.
-  OffsetDateTimeToken(String)
+  OffsetDateTimeToken(
+    src: String,
+    date: calendar.Date,
+    time: calendar.TimeOfDay,
+    offset: duration.Duration,
+  )
   /// A date-time with no offset.
-  LocalDateTimeToken(String)
+  LocalDateTimeToken(src: String, date: calendar.Date, time: calendar.TimeOfDay)
   /// A date.
-  LocalDateToken(String)
+  LocalDateToken(src: String, date: calendar.Date)
   /// A time.
-  LocalTimeToken(String)
+  LocalTimeToken(src: String, time: calendar.TimeOfDay)
   /// The end!
   EndOfFile
 }
@@ -71,6 +78,8 @@ pub type Sign {
 pub type TomlError {
   UnterminatedString(byte_position: Int)
   IncompleteFloat(byte_position: Int)
+  IncompleteDate(byte_position: Int)
+  IncompleteTime(byte_position: Int)
   UnknownSequence(byte_position: Int, got: String)
   // KeyAlreadyInUse(key: List(String))
 }
@@ -88,6 +97,8 @@ fn new_lexer(src: String) -> Lexer {
     Splitters(
       literal_string: splitter.new(["\n", "'"]),
       multiline_literal_string: splitter.new(["\n", "'''"]),
+      basic_string: splitter.new(["\n", "\"", "\\\\", "\\"]),
+      multiline_basic_string: splitter.new(["\n", "\"\"\"", "\\\\", "\\"]),
     )
   Lexer(0, src:, splitters:)
 }
@@ -103,7 +114,12 @@ type Lexer {
 }
 
 type Splitters {
-  Splitters(literal_string: Splitter, multiline_literal_string: Splitter)
+  Splitters(
+    literal_string: Splitter,
+    multiline_literal_string: Splitter,
+    basic_string: Splitter,
+    multiline_basic_string: Splitter,
+  )
 }
 
 fn fold_tokens(
@@ -209,6 +225,9 @@ fn lex_number(
     "8" <> src -> lex_number(step(lexer, src), int * 10 + 8, text <> "8")
     "9" <> src -> lex_number(step(lexer, src), int * 10 + 9, text <> "9")
 
+    ":" <> src if int < 24 ->
+      lex_time_minute(step(lexer, src), int, text <> ":")
+
     "." <> src -> {
       let float = int.to_float(int)
       lex_float(step(lexer, src), float, 0.1, text <> ".")
@@ -246,6 +265,168 @@ fn lex_number(
       }
       lexed(lexer, src, IntToken(text, value:))
     }
+  }
+}
+
+fn lex_time_minute(
+  lexer: Lexer,
+  hours: Int,
+  text: String,
+) -> Result(#(Lexer, Token), TomlError) {
+  use #(lexer, text, minutes) <- result.try(lex_number_under_60(lexer, text))
+  use #(lexer, text, seconds, ns) <- result.try(lex_seconds(lexer, text))
+  let time = calendar.TimeOfDay(hours, minutes, seconds, ns)
+  Ok(#(lexer, LocalTimeToken(text, time)))
+}
+
+fn lex_seconds(
+  lexer: Lexer,
+  text: String,
+) -> Result(#(Lexer, String, Int, Int), TomlError) {
+  case lexer.src {
+    ":" <> src -> {
+      let text = text <> ":"
+      let lexer = step(lexer, src)
+      use #(lexer, text, seconds) <- result.try(lex_number_under_60(lexer, text))
+      case lexer.src {
+        "." <> src -> {
+          let lexer = step(lexer, src)
+          let text = text <> "."
+          parse_time_ns(lexer, text, seconds, 0, 0)
+        }
+        _ -> Ok(#(lexer, text, seconds, 0))
+      }
+    }
+
+    _ -> Ok(#(lexer, text, 0, 0))
+  }
+}
+
+fn parse_time_ns(
+  lexer: Lexer,
+  text: String,
+  seconds: Int,
+  ns: Int,
+  digits_count: Int,
+) -> Result(#(Lexer, String, Int, Int), TomlError) {
+  case lexer.src {
+    "0" <> src if digits_count < 9 -> {
+      let lexer = step(lexer, src)
+      parse_time_ns(lexer, text <> "0", seconds, ns * 10 + 0, digits_count + 1)
+    }
+    "1" <> src if digits_count < 9 -> {
+      let lexer = step(lexer, src)
+      parse_time_ns(lexer, text <> "1", seconds, ns * 10 + 1, digits_count + 1)
+    }
+    "2" <> src if digits_count < 9 -> {
+      let lexer = step(lexer, src)
+      parse_time_ns(lexer, text <> "2", seconds, ns * 10 + 2, digits_count + 1)
+    }
+    "3" <> src if digits_count < 9 -> {
+      let lexer = step(lexer, src)
+      parse_time_ns(lexer, text <> "3", seconds, ns * 10 + 3, digits_count + 1)
+    }
+    "4" <> src if digits_count < 9 -> {
+      let lexer = step(lexer, src)
+      parse_time_ns(lexer, text <> "4", seconds, ns * 10 + 4, digits_count + 1)
+    }
+    "5" <> src if digits_count < 9 -> {
+      let lexer = step(lexer, src)
+      parse_time_ns(lexer, text <> "5", seconds, ns * 10 + 5, digits_count + 1)
+    }
+    "6" <> src if digits_count < 9 -> {
+      let lexer = step(lexer, src)
+      parse_time_ns(lexer, text <> "6", seconds, ns * 10 + 6, digits_count + 1)
+    }
+    "7" <> src if digits_count < 9 -> {
+      let lexer = step(lexer, src)
+      parse_time_ns(lexer, text <> "7", seconds, ns * 10 + 7, digits_count + 1)
+    }
+    "8" <> src if digits_count < 9 -> {
+      let lexer = step(lexer, src)
+      parse_time_ns(lexer, text <> "8", seconds, ns * 10 + 8, digits_count + 1)
+    }
+    "9" <> src if digits_count < 9 -> {
+      let lexer = step(lexer, src)
+      parse_time_ns(lexer, text <> "9", seconds, ns * 10 + 9, digits_count + 1)
+    }
+
+    _ if digits_count == 0 -> Error(IncompleteTime(lexer.position))
+
+    _ -> {
+      let exponent = int.to_float(9 - digits_count)
+      let assert Ok(multiplier) = float.power(10.0, exponent)
+      Ok(#(lexer, text, seconds, ns * float.truncate(multiplier)))
+    }
+  }
+}
+
+fn lex_number_under_60(
+  lexer: Lexer,
+  text: String,
+) -> Result(#(Lexer, String, Int), TomlError) {
+  case lexer.src {
+    "00" <> src -> Ok(#(step(lexer, src), text <> "00", 0))
+    "01" <> src -> Ok(#(step(lexer, src), text <> "01", 1))
+    "02" <> src -> Ok(#(step(lexer, src), text <> "02", 2))
+    "03" <> src -> Ok(#(step(lexer, src), text <> "03", 3))
+    "04" <> src -> Ok(#(step(lexer, src), text <> "04", 4))
+    "05" <> src -> Ok(#(step(lexer, src), text <> "05", 5))
+    "06" <> src -> Ok(#(step(lexer, src), text <> "06", 6))
+    "07" <> src -> Ok(#(step(lexer, src), text <> "07", 7))
+    "08" <> src -> Ok(#(step(lexer, src), text <> "08", 8))
+    "09" <> src -> Ok(#(step(lexer, src), text <> "09", 9))
+    "10" <> src -> Ok(#(step(lexer, src), text <> "10", 10))
+    "11" <> src -> Ok(#(step(lexer, src), text <> "11", 11))
+    "12" <> src -> Ok(#(step(lexer, src), text <> "12", 12))
+    "13" <> src -> Ok(#(step(lexer, src), text <> "13", 13))
+    "14" <> src -> Ok(#(step(lexer, src), text <> "14", 14))
+    "15" <> src -> Ok(#(step(lexer, src), text <> "15", 15))
+    "16" <> src -> Ok(#(step(lexer, src), text <> "16", 16))
+    "17" <> src -> Ok(#(step(lexer, src), text <> "17", 17))
+    "18" <> src -> Ok(#(step(lexer, src), text <> "18", 18))
+    "19" <> src -> Ok(#(step(lexer, src), text <> "19", 19))
+    "20" <> src -> Ok(#(step(lexer, src), text <> "20", 20))
+    "21" <> src -> Ok(#(step(lexer, src), text <> "21", 21))
+    "22" <> src -> Ok(#(step(lexer, src), text <> "22", 22))
+    "23" <> src -> Ok(#(step(lexer, src), text <> "23", 23))
+    "24" <> src -> Ok(#(step(lexer, src), text <> "24", 24))
+    "25" <> src -> Ok(#(step(lexer, src), text <> "25", 25))
+    "26" <> src -> Ok(#(step(lexer, src), text <> "26", 26))
+    "27" <> src -> Ok(#(step(lexer, src), text <> "27", 27))
+    "28" <> src -> Ok(#(step(lexer, src), text <> "28", 28))
+    "29" <> src -> Ok(#(step(lexer, src), text <> "29", 29))
+    "30" <> src -> Ok(#(step(lexer, src), text <> "30", 30))
+    "31" <> src -> Ok(#(step(lexer, src), text <> "31", 31))
+    "32" <> src -> Ok(#(step(lexer, src), text <> "32", 32))
+    "33" <> src -> Ok(#(step(lexer, src), text <> "33", 33))
+    "34" <> src -> Ok(#(step(lexer, src), text <> "34", 34))
+    "35" <> src -> Ok(#(step(lexer, src), text <> "35", 35))
+    "36" <> src -> Ok(#(step(lexer, src), text <> "36", 36))
+    "37" <> src -> Ok(#(step(lexer, src), text <> "37", 37))
+    "38" <> src -> Ok(#(step(lexer, src), text <> "38", 38))
+    "39" <> src -> Ok(#(step(lexer, src), text <> "39", 39))
+    "40" <> src -> Ok(#(step(lexer, src), text <> "40", 40))
+    "41" <> src -> Ok(#(step(lexer, src), text <> "41", 41))
+    "42" <> src -> Ok(#(step(lexer, src), text <> "42", 42))
+    "43" <> src -> Ok(#(step(lexer, src), text <> "43", 43))
+    "44" <> src -> Ok(#(step(lexer, src), text <> "44", 44))
+    "45" <> src -> Ok(#(step(lexer, src), text <> "45", 45))
+    "46" <> src -> Ok(#(step(lexer, src), text <> "46", 46))
+    "47" <> src -> Ok(#(step(lexer, src), text <> "47", 47))
+    "48" <> src -> Ok(#(step(lexer, src), text <> "48", 48))
+    "49" <> src -> Ok(#(step(lexer, src), text <> "49", 49))
+    "50" <> src -> Ok(#(step(lexer, src), text <> "50", 50))
+    "51" <> src -> Ok(#(step(lexer, src), text <> "51", 51))
+    "52" <> src -> Ok(#(step(lexer, src), text <> "52", 52))
+    "53" <> src -> Ok(#(step(lexer, src), text <> "53", 53))
+    "54" <> src -> Ok(#(step(lexer, src), text <> "54", 54))
+    "55" <> src -> Ok(#(step(lexer, src), text <> "55", 55))
+    "56" <> src -> Ok(#(step(lexer, src), text <> "56", 56))
+    "57" <> src -> Ok(#(step(lexer, src), text <> "57", 57))
+    "58" <> src -> Ok(#(step(lexer, src), text <> "58", 58))
+    "59" <> src -> Ok(#(step(lexer, src), text <> "59", 59))
+    _ -> Error(IncompleteTime(lexer.position))
   }
 }
 
