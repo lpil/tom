@@ -3,7 +3,7 @@ import gleam/time/calendar
 import gleam/time/duration
 import tom.{
   BareKeyToken, BasicStringToken, BoolToken, CommaToken, CommentToken, DotToken,
-  DoubleLeftBracketToken, DoubleRightBracketToken, EndOfFile, EqualsToken,
+  DoubleLeftBracketToken, DoubleRightBracketToken, EndOfFileToken, EqualsToken,
   FloatToken, IncompleteDate, IncompleteFloat, IncompleteTime, InfinityToken,
   IntToken, LeftBraceToken, LeftBracketToken, LiteralStringToken,
   LocalDateTimeToken, LocalDateToken, LocalTimeToken, MultiLineBasicStringToken,
@@ -13,80 +13,83 @@ import tom.{
 }
 
 pub fn empty_test() {
-  assert tom.to_tokens("") == Ok([EndOfFile])
+  assert tom.to_tokens("") == Ok([EndOfFileToken])
 }
 
 pub fn equal_test() {
-  assert tom.to_tokens("=") == Ok([EqualsToken, EndOfFile])
+  assert tom.to_tokens("=") == Ok([EqualsToken, EndOfFileToken])
 }
 
 pub fn dot_test() {
-  assert tom.to_tokens(".") == Ok([DotToken, EndOfFile])
+  assert tom.to_tokens(".") == Ok([DotToken, EndOfFileToken])
 }
 
 pub fn comma_test() {
-  assert tom.to_tokens(",") == Ok([CommaToken, EndOfFile])
+  assert tom.to_tokens(",") == Ok([CommaToken, EndOfFileToken])
 }
 
 pub fn braces_test() {
-  assert tom.to_tokens("{}") == Ok([LeftBraceToken, RightBraceToken, EndOfFile])
+  assert tom.to_tokens("{}")
+    == Ok([LeftBraceToken, RightBraceToken, EndOfFileToken])
 }
 
 pub fn brackets_test() {
   assert tom.to_tokens("[]")
-    == Ok([LeftBracketToken, RightBracketToken, EndOfFile])
+    == Ok([LeftBracketToken, RightBracketToken, EndOfFileToken])
 }
 
 pub fn double_brackets_test() {
   assert tom.to_tokens("[[]]")
-    == Ok([DoubleLeftBracketToken, DoubleRightBracketToken, EndOfFile])
+    == Ok([DoubleLeftBracketToken, DoubleRightBracketToken, EndOfFileToken])
 }
 
 pub fn true_test() {
-  assert tom.to_tokens("true") == Ok([BoolToken(True), EndOfFile])
+  assert tom.to_tokens("true") == Ok([BoolToken(True), EndOfFileToken])
 }
 
 pub fn false_test() {
-  assert tom.to_tokens("false") == Ok([BoolToken(False), EndOfFile])
+  assert tom.to_tokens("false") == Ok([BoolToken(False), EndOfFileToken])
 }
 
 pub fn nan_test() {
-  assert tom.to_tokens("nan") == Ok([NanToken(None), EndOfFile])
+  assert tom.to_tokens("nan") == Ok([NanToken(None), EndOfFileToken])
 }
 
 pub fn nan_positive_test() {
-  assert tom.to_tokens("+nan") == Ok([NanToken(Some(Positive)), EndOfFile])
+  assert tom.to_tokens("+nan") == Ok([NanToken(Some(Positive)), EndOfFileToken])
 }
 
 pub fn nan_negative_test() {
-  assert tom.to_tokens("-nan") == Ok([NanToken(Some(Negative)), EndOfFile])
+  assert tom.to_tokens("-nan") == Ok([NanToken(Some(Negative)), EndOfFileToken])
 }
 
 pub fn inf_test() {
-  assert tom.to_tokens("inf") == Ok([InfinityToken(None), EndOfFile])
+  assert tom.to_tokens("inf") == Ok([InfinityToken(None), EndOfFileToken])
 }
 
 pub fn inf_positive_test() {
-  assert tom.to_tokens("+inf") == Ok([InfinityToken(Some(Positive)), EndOfFile])
+  assert tom.to_tokens("+inf")
+    == Ok([InfinityToken(Some(Positive)), EndOfFileToken])
 }
 
 pub fn inf_negative_test() {
-  assert tom.to_tokens("-inf") == Ok([InfinityToken(Some(Negative)), EndOfFile])
+  assert tom.to_tokens("-inf")
+    == Ok([InfinityToken(Some(Negative)), EndOfFileToken])
 }
 
 pub fn newline_test() {
   assert tom.to_tokens("\n\n\n")
-    == Ok([NewlineToken, NewlineToken, NewlineToken, EndOfFile])
+    == Ok([NewlineToken, NewlineToken, NewlineToken, EndOfFileToken])
 }
 
 pub fn comment_test() {
   assert tom.to_tokens("# Hello, world!\n\n")
-    == Ok([CommentToken(" Hello, world!\n"), NewlineToken, EndOfFile])
+    == Ok([CommentToken(" Hello, world!\n"), NewlineToken, EndOfFileToken])
 }
 
 pub fn comment_no_newline_test() {
   assert tom.to_tokens("# Hello, world!")
-    == Ok([CommentToken(" Hello, world!"), EndOfFile])
+    == Ok([CommentToken(" Hello, world!"), EndOfFileToken])
 }
 
 pub fn spaces_test() {
@@ -99,7 +102,7 @@ pub fn spaces_test() {
       CommentToken(" 1\n"),
       WhitespaceToken("      "),
       CommentToken(" 2\n"),
-      EndOfFile,
+      EndOfFileToken,
     ])
 }
 
@@ -113,7 +116,7 @@ pub fn tabs_test() {
       CommentToken(" 1\n"),
       WhitespaceToken("\t\t\t"),
       CommentToken(" 2\n"),
-      EndOfFile,
+      EndOfFileToken,
     ])
 }
 
@@ -127,7 +130,7 @@ pub fn tabs_and_spaces_test() {
       CommentToken(" 1\n"),
       WhitespaceToken("\t \t \t"),
       CommentToken(" 2\n"),
-      EndOfFile,
+      EndOfFileToken,
     ])
 }
 
@@ -135,7 +138,7 @@ pub fn literal_string_test() {
   assert tom.to_tokens("'Hello'")
     == Ok([
       LiteralStringToken(src: "Hello"),
-      EndOfFile,
+      EndOfFileToken,
     ])
 }
 
@@ -157,7 +160,7 @@ pub fn multiline_literal_string_test() {
     )
     == Ok([
       MultiLineLiteralStringToken(src: "\n1\n2\n3\n", value: "1\n2\n3\n"),
-      EndOfFile,
+      EndOfFileToken,
     ])
 }
 
@@ -165,7 +168,7 @@ pub fn basic_string_test() {
   assert tom.to_tokens("\"Hello\"")
     == Ok([
       BasicStringToken(src: "Hello", value: "Hello"),
-      EndOfFile,
+      EndOfFileToken,
     ])
 }
 
@@ -182,7 +185,7 @@ pub fn basic_string_quote_escape_test() {
   assert tom.to_tokens("\"\\\"\"")
     == Ok([
       BasicStringToken(src: "\\\"", value: "\""),
-      EndOfFile,
+      EndOfFileToken,
     ])
 }
 
@@ -190,7 +193,7 @@ pub fn basic_string_backslash_escape_test() {
   assert tom.to_tokens("\"\\\\\"")
     == Ok([
       BasicStringToken(src: "\\\\", value: "\\"),
-      EndOfFile,
+      EndOfFileToken,
     ])
 }
 
@@ -198,7 +201,7 @@ pub fn basic_string_backspace_escape_test() {
   assert tom.to_tokens("\"\\b\"")
     == Ok([
       BasicStringToken(src: "\\b", value: "\u{8}"),
-      EndOfFile,
+      EndOfFileToken,
     ])
 }
 
@@ -206,7 +209,7 @@ pub fn basic_string_tab_escape_test() {
   assert tom.to_tokens("\"\\t\"")
     == Ok([
       BasicStringToken(src: "\\t", value: "\t"),
-      EndOfFile,
+      EndOfFileToken,
     ])
 }
 
@@ -214,7 +217,7 @@ pub fn basic_string_newline_escape_test() {
   assert tom.to_tokens("\"\\n\"")
     == Ok([
       BasicStringToken(src: "\\n", value: "\n"),
-      EndOfFile,
+      EndOfFileToken,
     ])
 }
 
@@ -222,7 +225,7 @@ pub fn basic_string_form_feed_escape_test() {
   assert tom.to_tokens("\"\\f\"")
     == Ok([
       BasicStringToken(src: "\\f", value: "\u{c}"),
-      EndOfFile,
+      EndOfFileToken,
     ])
 }
 
@@ -230,7 +233,7 @@ pub fn basic_string_carriage_return_escape_test() {
   assert tom.to_tokens("\"\\r\"")
     == Ok([
       BasicStringToken(src: "\\r", value: "\r"),
-      EndOfFile,
+      EndOfFileToken,
     ])
 }
 
@@ -238,7 +241,7 @@ pub fn basic_string_escape_escape_test() {
   assert tom.to_tokens("\"\\e\"")
     == Ok([
       BasicStringToken(src: "\\e", value: "\u{1b}"),
-      EndOfFile,
+      EndOfFileToken,
     ])
 }
 
@@ -246,7 +249,7 @@ pub fn basic_string_hex_escape_test() {
   assert tom.to_tokens("\"\\x7f\"")
     == Ok([
       BasicStringToken(src: "\\x7f", value: "\u{7f}"),
-      EndOfFile,
+      EndOfFileToken,
     ])
 }
 
@@ -254,7 +257,7 @@ pub fn basic_string_hex_escape_upper_range_test() {
   assert tom.to_tokens("\"\\xff\"")
     == Ok([
       BasicStringToken(src: "\\xff", value: "\u{ff}"),
-      EndOfFile,
+      EndOfFileToken,
     ])
 }
 
@@ -262,7 +265,7 @@ pub fn basic_string_unicode_escape_test() {
   assert tom.to_tokens("\"\\u03B1\"")
     == Ok([
       BasicStringToken(src: "\\u03B1", value: "\u{3b1}"),
-      EndOfFile,
+      EndOfFileToken,
     ])
 }
 
@@ -270,7 +273,7 @@ pub fn basic_string_unicode_long_escape_test() {
   assert tom.to_tokens("\"\\U0001F600\"")
     == Ok([
       BasicStringToken(src: "\\U0001F600", value: "\u{1f600}"),
-      EndOfFile,
+      EndOfFileToken,
     ])
 }
 
@@ -278,7 +281,7 @@ pub fn multiline_basic_string_test() {
   assert tom.to_tokens("\"\"\"\nHello\"\"\"")
     == Ok([
       MultiLineBasicStringToken(src: "\nHello", value: "Hello"),
-      EndOfFile,
+      EndOfFileToken,
     ])
 }
 
@@ -286,7 +289,7 @@ pub fn multiline_basic_string_no_newline_test() {
   assert tom.to_tokens("\"\"\"Hello\"\"\"")
     == Ok([
       MultiLineBasicStringToken(src: "Hello", value: "Hello"),
-      EndOfFile,
+      EndOfFileToken,
     ])
 }
 
@@ -294,7 +297,7 @@ pub fn multiline_basic_string_multiline_test() {
   assert tom.to_tokens("\"\"\"\n1\n2\n3\n\"\"\"")
     == Ok([
       MultiLineBasicStringToken(src: "\n1\n2\n3\n", value: "1\n2\n3\n"),
-      EndOfFile,
+      EndOfFileToken,
     ])
 }
 
@@ -302,7 +305,7 @@ pub fn multiline_basic_string_newline_test() {
   assert tom.to_tokens("\"\"\"\n1\n2\"\"\"")
     == Ok([
       MultiLineBasicStringToken(src: "\n1\n2", value: "1\n2"),
-      EndOfFile,
+      EndOfFileToken,
     ])
 }
 
@@ -315,7 +318,7 @@ pub fn multiline_basic_string_quote_escape_test() {
   assert tom.to_tokens("\"\"\"\n\\\"\"\"\"")
     == Ok([
       MultiLineBasicStringToken(src: "\n\\\"", value: "\""),
-      EndOfFile,
+      EndOfFileToken,
     ])
 }
 
@@ -323,7 +326,7 @@ pub fn multiline_basic_string_backslash_escape_test() {
   assert tom.to_tokens("\"\"\"\n\\\\\"\"\"")
     == Ok([
       MultiLineBasicStringToken(src: "\n\\\\", value: "\\"),
-      EndOfFile,
+      EndOfFileToken,
     ])
 }
 
@@ -331,7 +334,7 @@ pub fn multiline_basic_string_backspace_escape_test() {
   assert tom.to_tokens("\"\"\"\n\\b\"\"\"")
     == Ok([
       MultiLineBasicStringToken(src: "\n\\b", value: "\u{8}"),
-      EndOfFile,
+      EndOfFileToken,
     ])
 }
 
@@ -339,7 +342,7 @@ pub fn multiline_basic_string_tab_escape_test() {
   assert tom.to_tokens("\"\"\"\n\\t\"\"\"")
     == Ok([
       MultiLineBasicStringToken(src: "\n\\t", value: "\t"),
-      EndOfFile,
+      EndOfFileToken,
     ])
 }
 
@@ -347,7 +350,7 @@ pub fn multiline_basic_string_newline_escape_test() {
   assert tom.to_tokens("\"\"\"\n\\n\"\"\"")
     == Ok([
       MultiLineBasicStringToken(src: "\n\\n", value: "\n"),
-      EndOfFile,
+      EndOfFileToken,
     ])
 }
 
@@ -355,7 +358,7 @@ pub fn multiline_basic_string_form_feed_escape_test() {
   assert tom.to_tokens("\"\"\"\n\\f\"\"\"")
     == Ok([
       MultiLineBasicStringToken(src: "\n\\f", value: "\u{c}"),
-      EndOfFile,
+      EndOfFileToken,
     ])
 }
 
@@ -363,7 +366,7 @@ pub fn multiline_basic_string_carriage_return_escape_test() {
   assert tom.to_tokens("\"\"\"\n\\r\"\"\"")
     == Ok([
       MultiLineBasicStringToken(src: "\n\\r", value: "\r"),
-      EndOfFile,
+      EndOfFileToken,
     ])
 }
 
@@ -371,7 +374,7 @@ pub fn multiline_basic_string_escape_escape_test() {
   assert tom.to_tokens("\"\"\"\n\\e\"\"\"")
     == Ok([
       MultiLineBasicStringToken(src: "\n\\e", value: "\u{1b}"),
-      EndOfFile,
+      EndOfFileToken,
     ])
 }
 
@@ -379,7 +382,7 @@ pub fn multiline_basic_string_hex_escape_test() {
   assert tom.to_tokens("\"\"\"\n\\x7f\"\"\"")
     == Ok([
       MultiLineBasicStringToken(src: "\n\\x7f", value: "\u{7f}"),
-      EndOfFile,
+      EndOfFileToken,
     ])
 }
 
@@ -387,7 +390,7 @@ pub fn multiline_basic_string_hex_escape_upper_range_test() {
   assert tom.to_tokens("\"\"\"\n\\xff\"\"\"")
     == Ok([
       MultiLineBasicStringToken(src: "\n\\xff", value: "\u{ff}"),
-      EndOfFile,
+      EndOfFileToken,
     ])
 }
 
@@ -395,7 +398,7 @@ pub fn multiline_basic_string_unicode_escape_test() {
   assert tom.to_tokens("\"\"\"\n\\u03B1\"\"\"")
     == Ok([
       MultiLineBasicStringToken(src: "\n\\u03B1", value: "\u{3b1}"),
-      EndOfFile,
+      EndOfFileToken,
     ])
 }
 
@@ -403,7 +406,7 @@ pub fn multiline_basic_string_unicode_long_escape_test() {
   assert tom.to_tokens("\"\"\"\n\\U0001F600\"\"\"")
     == Ok([
       MultiLineBasicStringToken(src: "\n\\U0001F600", value: "\u{1f600}"),
-      EndOfFile,
+      EndOfFileToken,
     ])
 }
 
@@ -416,7 +419,7 @@ pub fn multiline_basic_string_line_ending_backslash_test() {
         src: "\nThe quick brown \\\nfox jumps over \\\nthe lazy dog.",
         value: "The quick brown fox jumps over the lazy dog.",
       ),
-      EndOfFile,
+      EndOfFileToken,
     ])
 }
 
@@ -429,7 +432,7 @@ pub fn multiline_basic_string_line_ending_backslash_spaces_test() {
         src: "\nThe quick brown \\\n  fox jumps over \\\n  the lazy dog.",
         value: "The quick brown fox jumps over the lazy dog.",
       ),
-      EndOfFile,
+      EndOfFileToken,
     ])
 }
 
@@ -442,7 +445,7 @@ pub fn multiline_basic_string_line_ending_backslash_tabs_test() {
         src: "\nThe quick brown \\\n\tfox jumps over \\\n\tthe lazy dog.",
         value: "The quick brown fox jumps over the lazy dog.",
       ),
-      EndOfFile,
+      EndOfFileToken,
     ])
 }
 
@@ -451,12 +454,12 @@ pub fn unexpected_test() {
 }
 
 pub fn key_test() {
-  assert tom.to_tokens("name") == Ok([BareKeyToken("name"), EndOfFile])
+  assert tom.to_tokens("name") == Ok([BareKeyToken("name"), EndOfFileToken])
 }
 
 pub fn key_fancy_test() {
   assert tom.to_tokens("_H311o-W0rld_")
-    == Ok([BareKeyToken("_H311o-W0rld_"), EndOfFile])
+    == Ok([BareKeyToken("_H311o-W0rld_"), EndOfFileToken])
 }
 
 pub fn key_value_test() {
@@ -468,46 +471,48 @@ pub fn key_value_test() {
       WhitespaceToken(" "),
       LeftBracketToken,
       RightBracketToken,
-      EndOfFile,
+      EndOfFileToken,
     ])
 }
 
 pub fn number_test() {
   assert tom.to_tokens("1234567890")
-    == Ok([IntToken("1234567890", 1_234_567_890), EndOfFile])
+    == Ok([IntToken("1234567890", 1_234_567_890), EndOfFileToken])
 }
 
 pub fn int_positive_test() {
   assert tom.to_tokens("+1234567890")
-    == Ok([IntToken("+1234567890", 1_234_567_890), EndOfFile])
+    == Ok([IntToken("+1234567890", 1_234_567_890), EndOfFileToken])
 }
 
 pub fn int_negative_test() {
   assert tom.to_tokens("-1234567890")
-    == Ok([IntToken("-1234567890", -1_234_567_890), EndOfFile])
+    == Ok([IntToken("-1234567890", -1_234_567_890), EndOfFileToken])
 }
 
 pub fn int_underscore_test() {
   assert tom.to_tokens("12_345_67__890")
-    == Ok([IntToken("12_345_67__890", 1_234_567_890), EndOfFile])
+    == Ok([IntToken("12_345_67__890", 1_234_567_890), EndOfFileToken])
 }
 
 pub fn float_test() {
-  assert tom.to_tokens("12.34") == Ok([FloatToken("12.34", 12.34), EndOfFile])
+  assert tom.to_tokens("12.34")
+    == Ok([FloatToken("12.34", 12.34), EndOfFileToken])
 }
 
 pub fn float_negative_test() {
   assert tom.to_tokens("-12.34")
-    == Ok([FloatToken("-12.34", -12.34), EndOfFile])
+    == Ok([FloatToken("-12.34", -12.34), EndOfFileToken])
 }
 
 pub fn float_positive_test() {
-  assert tom.to_tokens("+12.34") == Ok([FloatToken("+12.34", 12.34), EndOfFile])
+  assert tom.to_tokens("+12.34")
+    == Ok([FloatToken("+12.34", 12.34), EndOfFileToken])
 }
 
 pub fn float_underscore_test() {
   assert tom.to_tokens("12_34.5_67__890")
-    == Ok([FloatToken("12_34.5_67__890", 1234.567_89), EndOfFile])
+    == Ok([FloatToken("12_34.5_67__890", 1234.567_89), EndOfFileToken])
 }
 
 pub fn float_incomplete_test() {
@@ -515,38 +520,38 @@ pub fn float_incomplete_test() {
 }
 
 pub fn lex_float_exponent_test() {
-  assert tom.to_tokens("1e6") == Ok([FloatToken("1e6", 1.0e6), EndOfFile])
+  assert tom.to_tokens("1e6") == Ok([FloatToken("1e6", 1.0e6), EndOfFileToken])
 }
 
 pub fn lex_float_exponent_uppercase_test() {
-  assert tom.to_tokens("1E6") == Ok([FloatToken("1E6", 1.0e6), EndOfFile])
+  assert tom.to_tokens("1E6") == Ok([FloatToken("1E6", 1.0e6), EndOfFileToken])
 }
 
 pub fn lex_float_exponent_negative_test() {
   assert tom.to_tokens("-2e-22")
-    == Ok([FloatToken("-2e-22", -2.0e-22), EndOfFile])
+    == Ok([FloatToken("-2e-22", -2.0e-22), EndOfFileToken])
 }
 
 pub fn lex_float_decimal_and_exponent_test() {
   assert tom.to_tokens("6.626e25")
-    == Ok([FloatToken("6.626e25", 6.626e25), EndOfFile])
+    == Ok([FloatToken("6.626e25", 6.626e25), EndOfFileToken])
 }
 
 pub fn lex_float_decimal_and_exponent_positive_test() {
   assert tom.to_tokens("6.626e+25")
-    == Ok([FloatToken("6.626e+25", 6.626e25), EndOfFile])
+    == Ok([FloatToken("6.626e+25", 6.626e25), EndOfFileToken])
 }
 
 pub fn lex_float_decimal_and_exponent_negative_test() {
   assert tom.to_tokens("6.626e-25")
-    == Ok([FloatToken("6.626e-25", 6.626e-25), EndOfFile])
+    == Ok([FloatToken("6.626e-25", 6.626e-25), EndOfFileToken])
 }
 
 pub fn local_time_test() {
   assert tom.to_tokens("07:32:00")
     == Ok([
       LocalTimeToken("07:32:00", calendar.TimeOfDay(7, 32, 0, 0)),
-      EndOfFile,
+      EndOfFileToken,
     ])
 }
 
@@ -554,7 +559,7 @@ pub fn local_time_fractional_seconds_test() {
   assert tom.to_tokens("00:32:00.1234")
     == Ok([
       LocalTimeToken("00:32:00.1234", calendar.TimeOfDay(0, 32, 0, 123_400_000)),
-      EndOfFile,
+      EndOfFileToken,
     ])
 }
 
@@ -566,7 +571,7 @@ pub fn local_time_incomplete_seconds_test() {
   assert tom.to_tokens("07:32")
     == Ok([
       LocalTimeToken("07:32", calendar.TimeOfDay(7, 32, 0, 0)),
-      EndOfFile,
+      EndOfFileToken,
     ])
 }
 
@@ -578,7 +583,7 @@ pub fn local_date_test() {
   assert tom.to_tokens("1991-01-05")
     == Ok([
       LocalDateToken("1991-01-05", calendar.Date(1991, calendar.January, 5)),
-      EndOfFile,
+      EndOfFileToken,
     ])
 }
 
@@ -598,7 +603,7 @@ pub fn local_date_time_test() {
         calendar.Date(1991, calendar.January, 5),
         calendar.TimeOfDay(7, 32, 0, 0),
       ),
-      EndOfFile,
+      EndOfFileToken,
     ])
 }
 
@@ -611,7 +616,7 @@ pub fn offset_date_time_test() {
         calendar.TimeOfDay(7, 32, 0, 0),
         calendar.utc_offset,
       ),
-      EndOfFile,
+      EndOfFileToken,
     ])
 }
 
@@ -624,7 +629,7 @@ pub fn offset_date_time_positive_offset_test() {
         calendar.TimeOfDay(7, 32, 0, 0),
         duration.add(duration.hours(7), duration.minutes(30)),
       ),
-      EndOfFile,
+      EndOfFileToken,
     ])
 }
 
@@ -637,6 +642,6 @@ pub fn offset_date_time_negative_offset_test() {
         calendar.TimeOfDay(7, 32, 0, 0),
         duration.add(duration.hours(-5), duration.minutes(-15)),
       ),
-      EndOfFile,
+      EndOfFileToken,
     ])
 }
