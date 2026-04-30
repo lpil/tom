@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v2.1.0 - 2026-04-30
 
 - Added parsing of TOML documents to `Dynamic`.
 
