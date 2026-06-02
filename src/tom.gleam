@@ -631,7 +631,10 @@ fn merge(
   }
 }
 
-fn expect_end_of_line(input: Tokens, next: fn(Tokens) -> Parsed(a)) -> Parsed(a) {
+fn expect_end_of_line(
+  input: Tokens,
+  next: fn(Tokens) -> Parsed(a),
+) -> Parsed(a) {
   case input {
     ["\n", ..input] -> next(input)
     ["\r\n", ..input] -> next(input)
@@ -1113,6 +1116,21 @@ fn parse_string(input: Tokens, string: String) -> Parsed(Toml) {
     ["\\", "f", ..input] -> parse_string(input, string <> "\f")
     ["\\", "\"", ..input] -> parse_string(input, string <> "\"")
     ["\\", "\\", ..input] -> parse_string(input, string <> "\\")
+    ["\\", "x", ..input] -> {
+      let #(hex_codepoints, input) = list.split(input, 2)
+      use str <- result.try(hex_codepoint_to_string(hex_codepoints))
+      parse_string(input, string <> str)
+    }
+    ["\\", "u", ..input] -> {
+      let #(hex_codepoints, input) = list.split(input, 4)
+      use str <- result.try(hex_codepoint_to_string(hex_codepoints))
+      parse_string(input, string <> str)
+    }
+    ["\\", "U", ..input] -> {
+      let #(hex_codepoints, input) = list.split(input, 8)
+      use str <- result.try(hex_codepoint_to_string(hex_codepoints))
+      parse_string(input, string <> str)
+    }
     [] -> Error(Unexpected("EOF", "\""))
     ["\n", ..] -> Error(Unexpected("\n", "\""))
     ["\r\n", ..] -> Error(Unexpected("\r\n", "\""))
@@ -1135,6 +1153,21 @@ fn parse_multi_line_string(input: Tokens, string: String) -> Parsed(Toml) {
     ["\\", "r", ..input] -> parse_multi_line_string(input, string <> "\r")
     ["\\", "\"", ..input] -> parse_multi_line_string(input, string <> "\"")
     ["\\", "\\", ..input] -> parse_multi_line_string(input, string <> "\\")
+    ["\\", "x", ..input] -> {
+      let #(hex_codepoints, input) = input |> skip_whitespace |> list.split(2)
+      use str <- result.try(hex_codepoint_to_string(hex_codepoints))
+      parse_multi_line_string(input, string <> str)
+    }
+    ["\\", "u", ..input] -> {
+      let #(hex_codepoints, input) = input |> skip_whitespace |> list.split(4)
+      use str <- result.try(hex_codepoint_to_string(hex_codepoints))
+      parse_multi_line_string(input, string <> str)
+    }
+    ["\\", "U", ..input] -> {
+      let #(hex_codepoints, input) = input |> skip_whitespace |> list.split(8)
+      use str <- result.try(hex_codepoint_to_string(hex_codepoints))
+      parse_multi_line_string(input, string <> str)
+    }
     [] -> Error(Unexpected("EOF", "\""))
     [g, ..input] -> parse_multi_line_string(input, string <> g)
   }
@@ -1164,6 +1197,18 @@ fn parse_literal_string(input: Tokens, string: String) -> Parsed(Toml) {
     ["'", ..input] -> Ok(#(String(string), input))
     [g, ..input] -> parse_literal_string(input, string <> g)
   }
+}
+
+fn hex_codepoint_to_string(input: Tokens) -> Result(String, ParseError) {
+  let hex_codepoints = string.concat(input)
+
+  use codepoint <- result.map(
+    int.base_parse(hex_codepoints, 16)
+    |> result.try(string.utf_codepoint)
+    |> result.replace_error(Unexpected(hex_codepoints, "0 to F")),
+  )
+
+  string.from_utf_codepoints([codepoint])
 }
 
 fn reverse_arrays_of_tables(toml: Toml) -> Toml {

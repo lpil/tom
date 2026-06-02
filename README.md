@@ -34,11 +34,3 @@ pub fn main() {
 ```
 
 Further documentation can be found at <https://hexdocs.pm/tom>.
-
-## Status
-
-The following string escape sequences are not supported yet:
-
-- `\xHH`
-- `\uHHHH`
-- `\UHHHHHHHH`
