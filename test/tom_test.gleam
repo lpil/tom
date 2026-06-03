@@ -97,6 +97,21 @@ pub fn parse_string_linefeed_test() {
   assert tom.parse("hello = \"\\r\"\n") == Ok(expected)
 }
 
+pub fn parse_string_unicode_x_escape_test() {
+  let expected = dict.from_list([#("hello", tom.String("\u{00E9}"))])
+  assert tom.parse("hello = \"\\xE9\"\n") == Ok(expected)
+}
+
+pub fn parse_string_unicode_escape_test() {
+  let expected = dict.from_list([#("hello", tom.String("\u{1111}"))])
+  assert tom.parse("hello = \"\\u1111\"\n") == Ok(expected)
+}
+
+pub fn parse_string_unicode_wide_escape_test() {
+  let expected = dict.from_list([#("hello", tom.String("🌟"))])
+  assert tom.parse("hello = \"\\U0001F31F\"\n") == Ok(expected)
+}
+
 pub fn parse_escaped_slash_test() {
   let expected = dict.from_list([#("hello", tom.String("\\"))])
   assert tom.parse("hello = \"\\\\\"\n") == Ok(expected)
